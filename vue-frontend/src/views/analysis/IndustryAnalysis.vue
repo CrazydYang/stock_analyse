@@ -55,6 +55,10 @@
               <option value="count">按股票数量</option>
               <option value="name">按行业名称</option>
               <option value="change">按涨跌幅排序</option>
+              <option value="pe">按平均PE排序</option>
+              <option value="pb">按平均PB排序</option>
+              <option value="change60">按60天涨跌幅排序</option>
+              <option value="changeYtd">按年初至今涨跌幅排序</option>
             </select>
           </div>
           <div class="search-item">
@@ -95,6 +99,10 @@
               <th class="col-count">股票数量</th>
               <th class="col-percentage">市场占比</th>
               <th class="col-change">行业平均涨跌幅</th>
+              <th class="col-pe">平均PE</th>
+              <th class="col-pb">平均PB</th>
+              <th class="col-change-60">60天涨跌幅</th>
+              <th class="col-change-ytd">年初至今涨跌幅</th>
               <th class="col-actions">操作</th>
             </tr>
           </thead>
@@ -125,6 +133,36 @@
                   }"
                 >
                   {{ formatChangePercent(industry.avgChangePercent) }}
+                </span>
+              </td>
+              <td class="col-pe">
+                <span class="value-badge">{{ industry.avgPeRatio ? industry.avgPeRatio.toFixed(2) : 'N/A' }}</span>
+              </td>
+              <td class="col-pb">
+                <span class="value-badge">{{ industry.avgPbRatio ? industry.avgPbRatio.toFixed(2) : 'N/A' }}</span>
+              </td>
+              <td class="col-change-60">
+                <span 
+                  class="change-value" 
+                  :class="{
+                    'positive': industry.avgChange60Day > 0,
+                    'negative': industry.avgChange60Day < 0,
+                    'neutral': industry.avgChange60Day === 0
+                  }"
+                >
+                  {{ formatChangePercent(industry.avgChange60Day) }}
+                </span>
+              </td>
+              <td class="col-change-ytd">
+                <span 
+                  class="change-value" 
+                  :class="{
+                    'positive': industry.avgChangeYtd > 0,
+                    'negative': industry.avgChangeYtd < 0,
+                    'neutral': industry.avgChangeYtd === 0
+                  }"
+                >
+                  {{ formatChangePercent(industry.avgChangeYtd) }}
                 </span>
               </td>
               <td class="col-actions">
@@ -204,7 +242,7 @@
           <button class="modal-close" @click="closeDetailModal">×</button>
         </div>
         <div class="modal-body">
-          <div class="detail-stats">
+          <div class="detail-stats detail-stats-grid">
             <div class="detail-item">
               <span class="label">行业名称:</span>
               <span class="value">{{ selectedIndustry?.industry }}</span>
@@ -217,6 +255,38 @@
               <span class="label">市场占比:</span>
               <span class="value">{{ calculatePercentage(selectedIndustry?.count || 0) }}%</span>
             </div>
+            <div class="detail-item">
+              <span class="label">平均涨跌幅:</span>
+              <span class="value" :class="{
+                'positive': selectedIndustry?.avgChangePercent > 0,
+                'negative': selectedIndustry?.avgChangePercent < 0,
+                'neutral': selectedIndustry?.avgChangePercent === 0
+              }">{{ formatChangePercent(selectedIndustry?.avgChangePercent) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">平均PE:</span>
+              <span class="value">{{ selectedIndustry?.avgPeRatio ? selectedIndustry.avgPeRatio.toFixed(2) : 'N/A' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">平均PB:</span>
+              <span class="value">{{ selectedIndustry?.avgPbRatio ? selectedIndustry.avgPbRatio.toFixed(2) : 'N/A' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">60天涨跌幅:</span>
+              <span class="value" :class="{
+                'positive': selectedIndustry?.avgChange60Day > 0,
+                'negative': selectedIndustry?.avgChange60Day < 0,
+                'neutral': selectedIndustry?.avgChange60Day === 0
+              }">{{ formatChangePercent(selectedIndustry?.avgChange60Day) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">年初至今涨跌幅:</span>
+              <span class="value" :class="{
+                'positive': selectedIndustry?.avgChangeYtd > 0,
+                'negative': selectedIndustry?.avgChangeYtd < 0,
+                'neutral': selectedIndustry?.avgChangeYtd === 0
+              }">{{ formatChangePercent(selectedIndustry?.avgChangeYtd) }}</span>
+            </div>
           </div>
           
           <div class="stock-list-detail">
@@ -225,6 +295,13 @@
               <div class="table-header">
                 <div class="table-cell">股票代码</div>
                 <div class="table-cell">股票名称</div>
+                <div class="table-cell">总市值</div>
+                <div class="table-cell">最新价格</div>
+                <div class="table-cell">涨跌幅</div>
+                <div class="table-cell">市盈率</div>
+                <div class="table-cell">市净率</div>
+                <div class="table-cell">60天涨跌</div>
+                <div class="table-cell">年初至今</div>
               </div>
               <div class="table-body">
                 <div 
@@ -234,6 +311,31 @@
                 >
                   <div class="table-cell">{{ stock.code }}</div>
                   <div class="table-cell">{{ stock.name }}</div>
+                  <div class="table-cell">{{ stock.total_market_cap}}</div>
+                  <div class="table-cell">{{ stock.latest_price?.toFixed(2) || 'N/A' }}</div>
+                  <div class="table-cell" :class="{
+                    'positive': stock.change_percent > 0,
+                    'negative': stock.change_percent < 0,
+                    'neutral': stock.change_percent === 0
+                  }">
+                    {{ formatChangePercent(stock.change_percent) }}
+                  </div>
+                  <div class="table-cell">{{ stock.pe_ratio?.toFixed(2) || 'N/A' }}</div>
+                  <div class="table-cell">{{ stock.pb_ratio?.toFixed(2) || 'N/A' }}</div>
+                  <div class="table-cell" :class="{
+                    'positive': stock.change_60day > 0,
+                    'negative': stock.change_60day < 0,
+                    'neutral': stock.change_60day === 0
+                  }">
+                    {{ formatChangePercent(stock.change_60day) }}
+                  </div>
+                  <div class="table-cell" :class="{
+                    'positive': stock.change_ytd > 0,
+                    'negative': stock.change_ytd < 0,
+                    'neutral': stock.change_ytd === 0
+                  }">
+                    {{ formatChangePercent(stock.change_ytd) }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -283,6 +385,11 @@ interface Industry {
   industry: string
   count: number
   stocks: Stock[]
+  avgChangePercent?: number
+  avgPeRatio?: number
+  avgPbRatio?: number
+  avgChange60Day?: number
+  avgChangeYtd?: number
 }
 
 interface ApiResponse {
@@ -299,7 +406,7 @@ const industries = ref<Industry[]>([])
 const loading = ref(false)
 const searchKeyword = ref('')
 const minStockCount = ref<number>(0)
-const sortBy = ref<'count' | 'name' | 'change'>('count')
+const sortBy = ref<'count' | 'name' | 'change' | 'pe' | 'pb' | 'change60' | 'changeYtd'>('count')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const currentPage = ref(1)
 const pageSize = ref(12)
@@ -345,6 +452,22 @@ const filteredIndustries = computed(() => {
       // 处理可能的undefined或null值
       const aChange = a.avgChangePercent ?? 0
       const bChange = b.avgChangePercent ?? 0
+      compareValue = bChange - aChange
+    } else if (sortBy.value === 'pe') {
+      const aPe = a.avgPeRatio ?? 0
+      const bPe = b.avgPeRatio ?? 0
+      compareValue = bPe - aPe
+    } else if (sortBy.value === 'pb') {
+      const aPb = a.avgPbRatio ?? 0
+      const bPb = b.avgPbRatio ?? 0
+      compareValue = bPb - aPb
+    } else if (sortBy.value === 'change60') {
+      const aChange = a.avgChange60Day ?? 0
+      const bChange = b.avgChange60Day ?? 0
+      compareValue = bChange - aChange
+    } else if (sortBy.value === 'changeYtd') {
+      const aChange = a.avgChangeYtd ?? 0
+      const bChange = b.avgChangeYtd ?? 0
       compareValue = bChange - aChange
     } else {
       compareValue = a.industry.localeCompare(b.industry)
@@ -404,23 +527,58 @@ const fetchIndustries = async () => {
         // 为每个行业计算平均涨跌幅
         industriesData.forEach((industry: Industry) => {
           let totalChangePercent = 0
+          let totalPeRatio = 0
+          let totalPbRatio = 0
+          let totalChange60Day = 0
+          let totalChangeYtd = 0
           let validStocksCount = 0
+          let validPeCount = 0
+          let validPbCount = 0
+          let valid60DayCount = 0
+          let validYtdCount = 0
           
-          // 使用行业中的股票列表计算平均涨跌幅
+          // 使用行业中的股票列表计算平均值
           industry.stocks.forEach((stock: Stock) => {
             const stockData = stockMap.get(stock.code)
-            if (stockData && typeof stockData.change_percent === 'number') {
-              totalChangePercent += stockData.change_percent
-              validStocksCount++
+            if (stockData) {
+              // 计算涨跌幅平均值
+              if (typeof stockData.change_percent === 'number') {
+                totalChangePercent += stockData.change_percent
+                validStocksCount++
+              }
+              
+              // 计算PE平均值
+              if (typeof stockData.pe_ratio === 'number' && stockData.pe_ratio > 0) {
+                totalPeRatio += stockData.pe_ratio
+                validPeCount++
+              }
+              
+              // 计算PB平均值
+              if (typeof stockData.pb_ratio === 'number' && stockData.pb_ratio > 0) {
+                totalPbRatio += stockData.pb_ratio
+                validPbCount++
+              }
+              
+              // 计算60天涨跌幅平均值
+              if (typeof stockData.change_60day === 'number') {
+                totalChange60Day += stockData.change_60day
+                valid60DayCount++
+              }
+              
+              // 计算年初至今涨跌幅平均值
+              if (typeof stockData.change_ytd === 'number') {
+                totalChangeYtd += stockData.change_ytd
+                validYtdCount++
+              }
             }
           })
           
           // 计算平均值
-          if (validStocksCount > 0) {
-            industry.avgChangePercent = totalChangePercent / validStocksCount
-          } else {
-            industry.avgChangePercent = 0
-          }
+          industry.avgChangePercent = validStocksCount > 0 ? totalChangePercent / validStocksCount : 0
+          industry.avgPeRatio = validPeCount > 0 ? totalPeRatio / validPeCount : 0
+          industry.avgPbRatio = validPbCount > 0 ? totalPbRatio / validPbCount : 0
+          industry.avgChange60Day = valid60DayCount > 0 ? totalChange60Day / valid60DayCount : 0
+          industry.avgChangeYtd = validYtdCount > 0 ? totalChangeYtd / validYtdCount : 0
         })
       }
       
@@ -813,24 +971,42 @@ onMounted(() => {
 
 /* 列宽设置 */
 .col-industry {
-  width: 25%;
+  width: 15%;
 }
 
 .col-count {
-  width: 12%;
+  width: 8%;
   text-align: center;
 }
 
 .col-percentage {
-  width: 18%;
+  width: 8%;
 }
 
-.col-stocks {
-  width: 30%;
+.col-change {
+  width: 10%;
+}
+
+.col-pe {
+  width: 8%;
+  text-align: center;
+}
+
+.col-pb {
+  width: 8%;
+  text-align: center;
+}
+
+.col-change-60 {
+  width: 10%;
+}
+
+.col-change-ytd {
+  width: 10%;
 }
 
 .col-actions {
-  width: 15%;
+  width: 10%;
   text-align: center;
 }
 
@@ -863,6 +1039,17 @@ onMounted(() => {
   padding: 4px 12px;
   background: #e6f7ff;
   color: #1890ff;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 数值徽章 */
+.value-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #f9f0ff;
+  color: #722ed1;
   border-radius: 12px;
   font-weight: 600;
   font-size: 14px;
@@ -1144,7 +1331,6 @@ onMounted(() => {
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
 }
@@ -1183,16 +1369,20 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.detail-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
 .detail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.detail-item:last-child {
-  border-bottom: none;
+  padding: 10px 16px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background-color: #fafafa;
 }
 
 .detail-item .label {
@@ -1204,6 +1394,18 @@ onMounted(() => {
   color: #666;
 }
 
+@media (min-width: 768px) {
+  .detail-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .detail-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .stock-list-detail h4 {
   margin: 0 0 16px 0;
   font-size: 18px;
@@ -1213,12 +1415,14 @@ onMounted(() => {
 .stock-table {
   border: 1px solid #f0f0f0;
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
 }
 
 .stock-table .table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(9, 1fr);
   background: #f5f5f5;
   font-weight: 600;
 }
@@ -1230,16 +1434,53 @@ onMounted(() => {
 
 .stock-table .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(9, 1fr);
 }
 
 .stock-table .table-cell {
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid #f0f0f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.stock-table .table-cell.negative {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.stock-table .table-cell.positive {
+  color: #f44336;
+  font-weight: 500;
+}
+
+.stock-table .table-cell.neutral {
+  color: #9e9e9e;
 }
 
 .stock-table .table-row:nth-child(even) {
   background: #fafafa;
+}
+
+@media (max-width: 1024px) {
+  .stock-table .table-header,
+  .stock-table .table-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .stock-table .table-cell {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1200px) {
+  .stock-table .table-header,
+  .stock-table .table-row {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 /* 响应式设计 */
