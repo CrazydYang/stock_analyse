@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,20 +6,26 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: () => import('../views/HomeView.vue'),
       meta: { title: '首页' }
+    },
+    {
+      path: '/industries',
+      name: 'industries',
+      component: () => import('../views/analysis/IndustryAnalysis.vue'),
+      meta: { title: '行业分析' }
+    },
+    {
+      path: '/industries/:industry',
+      name: 'industry-detail',
+      component: () => import('../views/analysis/IndustryDetail.vue'),
+      meta: { title: '行业详情' }
     },
     {
       path: '/stock-picker',
       name: 'stock-picker',
       meta: { title: '智能选股' },
       children: [
-        {
-          path: '/industries',
-          name: 'stock-picker-industries',
-          component: () => import('../views/analysis/IndustryAnalysis.vue'),
-          meta: { title: '行业分析' }
-        },
         {
           path: '/stock-viewer',
           name: 'stock-viewer',
