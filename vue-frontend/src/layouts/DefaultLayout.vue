@@ -128,7 +128,19 @@ const menuItems = [
   {
     path: '/stock-picker',
     title: '智能选股',
-    icon: 'MagicStick'
+    icon: 'MagicStick',
+    children: [
+      {
+        path: '/stock-viewer',
+        title: '股票筛选',
+        icon: 'DataAnalysis'
+      },
+      {
+        path: '/industries',
+        title: '行业分析',
+        icon: 'Document'
+      }
+    ]
   },
   {
     path: '/analysis',

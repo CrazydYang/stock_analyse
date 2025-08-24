@@ -13,8 +13,21 @@ const router = createRouter({
     {
       path: '/stock-picker',
       name: 'stock-picker',
-      component: () => import('../views/StockPickerView.vue'),
-      meta: { title: '智能选股' }
+      meta: { title: '智能选股' },
+      children: [
+        {
+          path: '/industries',
+          name: 'stock-picker-industries',
+          component: () => import('../views/analysis/IndustryAnalysis.vue'),
+          meta: { title: '行业分析' }
+        },
+        {
+          path: '/stock-viewer',
+          name: 'stock-viewer',
+          component: () => import('../views/StockPickerView.vue'),
+          meta: { title: '股票分析' }
+        }
+      ]
     },
     {
       path: '/analysis',
