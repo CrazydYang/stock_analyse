@@ -102,6 +102,7 @@
                     <el-option label="PEG值" value="PEG值"></el-option>
                     <el-option label="市现率" value="市现率"></el-option>
                     <el-option label="市销率" value="市销率"></el-option>
+                    <el-option label="当日收盘价" value="当日收盘价"></el-option>
                   </el-select>
                 </div>
               </div>
@@ -400,7 +401,8 @@ const selectedMetricsConfig = computed(() => {
     { key: '市净率', label: '市净率' },
     { key: 'PEG值', label: 'PEG值' },
     { key: '市现率', label: '市现率' },
-    { key: '市销率', label: '市销率' }
+    { key: '市销率', label: '市销率' },
+    { key: '当日收盘价', label: '当日收盘价' },
   ]
 })
 

@@ -1,8 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isAuthenticated } from '../services/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/auth/LoginView.vue'),
+      meta: { title: '登录', requiresAuth: false }
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/auth/RegisterView.vue'),
+      meta: { title: '注册', requiresAuth: false }
+    },
     {
       path: '/',
       name: 'home',
@@ -62,6 +75,12 @@ const router = createRouter({
           name: 'stock-detail',
           component: () => import('../views/analysis/StockDetail.vue'),
           meta: { title: '股票详情' }
+        },
+        {
+          path: '/analysis/market',
+          name: 'market-analysis',
+          component: () => import('../views/analysis/MarketAnalysis.vue'),
+          meta: { title: '大盘分析' }
         }
       ]
     },
@@ -78,6 +97,22 @@ const router = createRouter({
       meta: { title: '系统设置' }
     }
   ],
+})
+
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 设置页面标题
+  document.title = to.meta.title ? `${to.meta.title} - 股票分析系统` : '股票分析系统'
+  
+  // 检查路由是否需要认证
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
+  next()
+  // 如果路由需要认证且用户未登录，则重定向到登录页面
+  if (requiresAuth && !isAuthenticated()) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router

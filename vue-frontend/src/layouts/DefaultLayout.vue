@@ -71,16 +71,27 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
-          <el-dropdown>
+          <!-- 未登录状态 -->
+          <div v-if="!isAuthenticated" class="auth-buttons">
+            <router-link to="/login">
+              <el-button type="primary" size="small">登录</el-button>
+            </router-link>
+            <router-link to="/register">
+              <el-button size="small">注册</el-button>
+            </router-link>
+          </div>
+          
+          <!-- 已登录状态 -->
+          <el-dropdown v-else @command="handleCommand">
             <span class="user-info">
               <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-              <span class="username">管理员</span>
+              <span class="username">{{ currentUser?.username || '用户' }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>个人中心</el-dropdown-item>
-                <el-dropdown-item>修改密码</el-dropdown-item>
-                <el-dropdown-item divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
+                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -96,8 +107,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
+import { isAuthenticated, currentUser, logout, initAuth } from '../services/auth'
 import {
   Fold,
   Expand,
@@ -111,6 +124,38 @@ import {
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const router = useRouter()
+
+// 初始化认证状态
+onMounted(() => {
+  initAuth()
+})
+
+// 处理用户下拉菜单命令
+function handleCommand(command: string) {
+  switch (command) {
+    case 'profile':
+      ElMessageBox.alert('个人中心功能暂未实现', '提示', {
+        confirmButtonText: '确定'
+      })
+      break
+    case 'changePassword':
+      ElMessageBox.alert('修改密码功能暂未实现', '提示', {
+        confirmButtonText: '确定'
+      })
+      break
+    case 'logout':
+      ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        logout()
+        router.push('/login')
+      }).catch(() => {})
+      break
+  }
+}
 const isCollapse = ref(false)
 
 // 侧边栏宽度计算
@@ -147,6 +192,11 @@ const menuItems = [
     title: '股票分析',
     icon: 'TrendCharts',
     children: [
+      {
+        path: '/analysis/market',
+        title: '大盘分析',
+        icon: 'TrendCharts'
+      },
       {
         path: '/analysis/technical',
         title: '技术分析',
@@ -264,6 +314,11 @@ const toggleSidebar = () => {
 .username {
   margin-left: 8px;
   font-size: 14px;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .main-content {
