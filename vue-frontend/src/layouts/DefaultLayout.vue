@@ -156,6 +156,11 @@ const menuItems = [
         path: '/analysis/fundamental',
         title: '基本面分析',
         icon: 'Document'
+      },
+      {
+        path: '/analysis/trend',
+        title: '趋势分析',
+        icon: 'TrendCharts'
       }
     ]
   },

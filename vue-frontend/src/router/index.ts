@@ -29,7 +29,7 @@ const router = createRouter({
         {
           path: '/stock-viewer',
           name: 'stock-viewer',
-          component: () => import('../views/StockPickerView.vue'),
+          component: () => import('../views/analysis/StockPickerView.vue'),
           meta: { title: '股票分析' }
         }
       ]
@@ -50,6 +50,18 @@ const router = createRouter({
           name: 'fundamental',
           component: () => import('../views/analysis/FundamentalAnalysis.vue'),
           meta: { title: '基本面分析' }
+        },
+        {
+          path: '/analysis/trend',
+          name: 'trend',
+          component: () => import('../views/analysis/TrendAnalysis.vue'),
+          meta: { title: '趋势分析' }
+        },
+        {
+          path: '/analysis/stock/:code',
+          name: 'stock-detail',
+          component: () => import('../views/analysis/StockDetail.vue'),
+          meta: { title: '股票详情' }
         }
       ]
     },
