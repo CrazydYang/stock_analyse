@@ -305,7 +305,7 @@ const updateChart = async () => {
   })
   
   // 准备Y轴配置
-  const yAxes = []
+  const yAxes: any[] = []
   const usedYAxisIndices = new Set(selectedYFields.value.map(fieldKey => {
     const fieldConfig = props.yFields.find(f => f.key === fieldKey)
     return fieldConfig?.yAxisIndex || 0

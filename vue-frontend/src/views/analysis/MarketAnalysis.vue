@@ -135,21 +135,21 @@ const selectedMetricsConfig = computed(() => {
   return selectedMetrics.value.map(metric => {
     switch (metric) {
       case '收盘点位':
-        return { key: '收盘点位', value: '收盘点位', color: '#409EFF' }
+        return { key: '收盘点位', label: '收盘点位', color: '#409EFF' }
       case '开盘点位':
-        return { key: '开盘点位', value: '开盘点位', color: '#67C23A' }
+        return { key: '开盘点位', label: '开盘点位', color: '#67C23A' }
       case '最高点位':
-        return { key: '最高点位', value: '最高点位', color: '#E6A23C' }  
+        return { key: '最高点位', label: '最高点位', color: '#E6A23C' }  
       case '最低点位':
-        return { key: '最低点位', value: '最低点位', color: '#F56C6C' }
+        return { key: '最低点位', label: '最低点位', color: '#F56C6C' }
       case '涨跌幅':
-        return { field: '涨跌幅', name: '涨跌幅', color: '#909399' }
+        return { key: '涨跌幅', label: '涨跌幅', color: '#909399' }
       case '成交量':
-        return { key: '成交量', value: '成交量', color: '#9370DB' }
+        return { key: '成交量', label: '成交量', color: '#9370DB' }
       case '成交额':
-        return { key: '成交额', value: '成交额', color: '#FF6347' } 
+        return { key: '成交额', label: '成交额', color: '#FF6347' } 
       default:
-        return { key: metric, value: metric, color: '#409EFF' }
+        return { key: metric, label: metric, color: '#409EFF' }
     }
   })
 })

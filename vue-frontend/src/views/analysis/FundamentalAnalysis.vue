@@ -95,13 +95,52 @@
             </el-card>
           </el-col>
         </el-row>
+        
+        <!-- 股票账户数量趋势图 -->
+        <el-row :gutter="20" class="mt-20">
+          <el-col :span="24">
+            <el-card shadow="hover" v-loading="accountDataLoading" element-loading-text="正在加载股票账户数据...">
+              <template #header>
+                <div class="chart-header">
+                  <h3>股票账户数量趋势分析</h3>
+                  <div class="chart-controls">
+                    <el-select v-model="selectedAccountMetrics" multiple placeholder="选择指标" style="width: 300px;">
+                      <el-option label="A股账户数" value="A股账户数"></el-option>
+                      <el-option label="B股账户数" value="B股账户数"></el-option>
+                      <el-option label="账户总量" value="账户总量"></el-option>
+                      <el-option label="新增投资者" value="新增投资者"></el-option>
+                      <el-option label="沪深总市值" value="沪深总市值"></el-option>
+                      <el-option label="沪深户均市值" value="沪深户均市值"></el-option>
+                      <el-option label="上证指数" value="上证指数"></el-option>
+                    </el-select>
+                    <el-button type="primary" @click="fetchAccountData" :icon="Refresh" :loading="accountDataLoading">刷新数据</el-button>
+                  </div>
+                </div>
+              </template>
+              <div class="chart-container" v-if="accountData.length > 0">
+                <TrendChart 
+                  :data="formattedAccountData" 
+                  date-field="date"
+                  :yFields="accountMetricsConfig"
+                  :defaultSelectedFields="selectedAccountMetrics"
+                  height="500px"
+                  title="股票账户数量趋势"
+                />
+              </div>
+              <el-empty v-else description="暂无股票账户数据" />
+            </el-card>
+          </el-col>
+        </el-row>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { getStockAccountStatistics, formatAccountData } from '@/services/accountApi'
+import TrendChart from '@/components/TrendChart.vue'
+import { Refresh } from '@element-plus/icons-vue'
 
 const searchStock = ref('')
 const activeTab = ref('balance')
@@ -152,10 +191,68 @@ const cashFlowData = ref([
   { item: '现金净增加额', amount: '20亿', direction: '净流入' }
 ])
 
+// 股票账户数据相关
+import type { StockAccountData } from '@/services/accountApi'
+const accountData = ref<StockAccountData[]>([])
+const accountDataLoading = ref(false)
+const selectedAccountMetrics = ref(['A股账户数', '账户总量', '新增投资者'])
+
+// 格式化后的账户数据
+const formattedAccountData = computed(() => {
+  return formatAccountData(accountData.value)
+})
+
+// 账户数据指标配置
+const accountMetricsConfig = computed(() => {
+  return selectedAccountMetrics.value.map(metric => {
+    switch (metric) {
+      case 'A股账户数':
+        return { field: 'A股账户数', name: 'A股账户数', color: '#409EFF', key: 'A股账户数', label: 'A股账户数' }
+      case 'B股账户数':
+        return { field: 'B股账户数', name: 'B股账户数', color: '#67C23A', key: 'B股账户数', label: 'B股账户数' }
+      case '账户总量':
+        return { field: '账户总量', name: '账户总量', color: '#E6A23C', key: '账户总量', label: '账户总量' }
+      case '新增投资者':
+        return { field: '新增投资者', name: '新增投资者', color: '#F56C6C', key: '新增投资者', label: '新增投资者' }
+      case '沪深总市值':
+        return { field: '沪深总市值', name: '沪深总市值', color: '#909399', key: '沪深总市值', label: '沪深总市值' }
+      case '沪深户均市值':
+        return { field: '沪深户均市值', name: '沪深户均市值', color: '#9B59B6', key: '沪深户均市值', label: '沪深户均市值' }
+      case '上证指数':
+        return { field: '上证指数', name: '上证指数', color: '#2C3E50', key: '上证指数', label: '上证指数' }
+      default:
+        return { field: metric, name: metric, color: '#409EFF', key: metric.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(), label: metric }
+    }
+  })
+})
+
+// 获取股票账户数据
+async function fetchAccountData() {
+  accountDataLoading.value = true
+  try {
+    const response = await getStockAccountStatistics()
+    if (response.code === 200) {
+      accountData.value = response.data
+    } else {
+      console.error('获取股票账户数据失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取股票账户数据失败:', error)
+  } finally {
+    accountDataLoading.value = false
+  }
+}
+
 const searchStockData = () => {
   console.log('搜索股票:', searchStock.value)
   // 这里可以添加实际的搜索逻辑
+  fetchAccountData() // 同时获取账户数据
 }
+
+// 初始化时获取一次数据
+onMounted(() => {
+  fetchAccountData()
+})
 </script>
 
 <style scoped>
@@ -214,5 +311,28 @@ const searchStockData = () => {
 
 .mt-20 {
   margin-top: 20px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.chart-container {
+  margin-top: 10px;
+  width: 100%;
 }
 </style>

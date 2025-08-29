@@ -431,8 +431,6 @@ import {
   sortStocks, 
   calculateStockStats,
   formatNumber,
-  formatMarketCap,
-  formatVolume,
   type Stock, 
   type SearchParams 
 } from '@/services/stockApi'

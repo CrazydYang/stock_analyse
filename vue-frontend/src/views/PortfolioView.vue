@@ -60,8 +60,8 @@
                 </div>
                 <div class="summary-item">
                   <span class="label">收益率:</span>
-                  <span :class="{ 'profit-positive': totalReturn > 0, 'profit-negative': totalReturn < 0 }">
-                    {{ totalReturn > 0 ? '+' : '' }}{{ totalReturn }}%
+                  <span :class="{ 'profit-positive': Number(totalReturn) > 0, 'profit-negative': Number(totalReturn) < 0 }">
+                    {{ Number(totalReturn) > 0 ? '+' : '' }}{{ totalReturn }}%
                   </span>
                 </div>
                 <div class="summary-item">

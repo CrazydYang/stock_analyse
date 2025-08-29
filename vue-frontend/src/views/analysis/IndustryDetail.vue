@@ -47,10 +47,10 @@
             <el-card class="stat-card" shadow="hover">
               <div class="stat-label">平均涨跌幅</div>
               <div class="stat-value" :class="{
-                'positive': industryData.avgChangePercent > 0,
-                'negative': industryData.avgChangePercent < 0,
+                'positive': industryData.avgChangePercent && industryData.avgChangePercent > 0,
+                'negative': industryData.avgChangePercent && industryData.avgChangePercent < 0,
                 'neutral': industryData.avgChangePercent === 0
-              }">{{ formatChangePercent(industryData.avgChangePercent) }}</div>
+              }">{{ formatChangePercent(industryData.avgChangePercent || 0) }}</div>
             </el-card>
           </el-col>
           <el-col :xs="12" :sm="6" :md="6" :lg="6">
@@ -69,20 +69,20 @@
             <el-card class="stat-card" shadow="hover">
               <div class="stat-label">60天涨跌幅</div>
               <div class="stat-value" :class="{
-                'positive': industryData.avgChange60Day > 0,
-                'negative': industryData.avgChange60Day < 0,
+                'positive': industryData.avgChange60Day && industryData.avgChange60Day > 0,
+                'negative': industryData.avgChange60Day && industryData.avgChange60Day < 0,
                 'neutral': industryData.avgChange60Day === 0
-              }">{{ formatChangePercent(industryData.avgChange60Day) }}</div>
+              }">{{ formatChangePercent(industryData.avgChange60Day || 0) }}</div>
             </el-card>
           </el-col>
           <el-col :xs="12" :sm="6" :md="6" :lg="6">
             <el-card class="stat-card" shadow="hover">
               <div class="stat-label">年初至今涨跌幅</div>
               <div class="stat-value" :class="{
-                'positive': industryData.avgChangeYtd > 0,
-                'negative': industryData.avgChangeYtd < 0,
+                'positive': industryData.avgChangeYtd && industryData.avgChangeYtd > 0,
+                'negative': industryData.avgChangeYtd && industryData.avgChangeYtd < 0,
                 'neutral': industryData.avgChangeYtd === 0
-              }">{{ formatChangePercent(industryData.avgChangeYtd) }}</div>
+              }">{{ formatChangePercent(industryData.avgChangeYtd || 0) }}</div>
             </el-card>
           </el-col>
         </el-row>
