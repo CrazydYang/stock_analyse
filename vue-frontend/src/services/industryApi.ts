@@ -57,7 +57,7 @@ export interface StocksApiResponse {
 }
 
 // API配置
-const API_BASE_URL = 'http://localhost:5001/api'
+const API_BASE_URL = '/api'
 
 /**
  * 获取行业数据

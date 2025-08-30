@@ -118,7 +118,7 @@ export interface StockFundFlowApiResponse {
 }
 
 // API基础URL
-const API_BASE_URL = 'http://localhost:5001/api'
+const API_BASE_URL = '/api'
 
 /**
  * 获取单个股票的估值数据
