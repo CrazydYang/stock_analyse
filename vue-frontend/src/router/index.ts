@@ -79,8 +79,14 @@ const router = createRouter({
         {
           path: '/analysis/market',
           name: 'market-analysis',
-          component: () => import('../views/analysis/MarketAnalysis.vue'),
+          component: () => import('@/views/analysis/MarketAnalysis.vue'),
           meta: { title: '大盘分析' }
+        },
+        {
+          path: '/analysis/congestion',
+          name: 'congestion-heatmap',
+          component: () => import('@/views/analysis/CongestionHeatmap.vue'),
+          meta: { title: '行业拥挤度热力图' }
         }
       ]
     },

@@ -198,6 +198,11 @@ const menuItems = [
         icon: 'TrendCharts'
       },
       {
+        path: '/analysis/congestion',
+        title: '行业拥挤度',
+        icon: 'TrendCharts'
+      },
+      {
         path: '/analysis/technical',
         title: '技术分析',
         icon: 'DataAnalysis'
