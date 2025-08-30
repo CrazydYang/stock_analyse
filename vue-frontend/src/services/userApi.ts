@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const API_BASE_URL = 'http://127.0.0.1:5001/api';
+const API_BASE_URL = '/api';
 
 // 用户接口定义
 export interface User {

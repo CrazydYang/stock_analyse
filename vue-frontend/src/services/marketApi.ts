@@ -33,7 +33,7 @@ export interface IndexHistApiResponse {
 export async function getShIndexHistory(startDate: string, endDate: string): Promise<IndexHistApiResponse> {
   try {
     const response = await axios.get<IndexHistApiResponse>(
-      `http://127.0.0.1:5001/api/sh-a/stock/000001/index_zh_a_hist`,
+      `/api/sh-a/stock/000001/index_zh_a_hist`,
       {
         params: {
           start_date: startDate,

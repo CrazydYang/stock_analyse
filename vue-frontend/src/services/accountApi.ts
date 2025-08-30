@@ -31,7 +31,7 @@ export interface StockAccountApiResponse {
 export async function getStockAccountStatistics(): Promise<StockAccountApiResponse> {
   try {
     const response = await axios.get<StockAccountApiResponse>(
-      `http://127.0.0.1:5001/api/sh-a/stock/account/statistics`
+      `/api/sh-a/stock/account/statistics`
     )
     return response.data
   } catch (error) {
