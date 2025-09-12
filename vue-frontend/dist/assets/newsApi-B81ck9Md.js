@@ -1,0 +1,1 @@
+async function n(r=10,e=0,s){try{const t=`/api/cctv_news/?limit=${r}&offset=${e}`;return await(await fetch(t)).json()}catch(t){throw console.error("获取新闻列表失败:",t),t}}async function c(r){try{return await(await fetch(`/api/cctv_news/${r}`)).json()}catch(e){throw console.error("获取新闻详情失败:",e),e}}export{c as a,n as g};
