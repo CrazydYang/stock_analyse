@@ -270,8 +270,7 @@ const showTrendChart = (industries: IndustryData[], dates: string[]) => {
   const option: echarts.EChartsOption = {
     title: {
       text: `行业拥挤度趋势图 - ${industries.map(i => i.name).join('、')}`,
-      left: 'center',
-      top: '2%'
+      left: 'center'
     },
     tooltip: {
       trigger: 'axis',
@@ -290,13 +289,13 @@ const showTrendChart = (industries: IndustryData[], dates: string[]) => {
     legend: {
       type: 'scroll',
       data: industries.map((industry) => industry.name),
-      top: '10%'
+      top: '5%'
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
-      top: '18%',
+      top: '15%',
       containLabel: true
     },
     xAxis: {

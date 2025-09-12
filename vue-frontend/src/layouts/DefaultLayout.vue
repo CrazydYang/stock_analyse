@@ -216,6 +216,11 @@ const menuItems = [
         path: '/analysis/trend',
         title: '趋势分析',
         icon: 'TrendCharts'
+      },
+      {
+        path: '/analysis/news-list',
+        title: 'CCTV新闻',
+        icon: 'Document'
       }
     ]
   },

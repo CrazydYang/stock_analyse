@@ -87,6 +87,18 @@ const router = createRouter({
           name: 'congestion-heatmap',
           component: () => import('@/views/analysis/CongestionHeatmap.vue'),
           meta: { title: '行业拥挤度热力图' }
+        },
+        {
+          path: '/analysis/news-list',
+          name: 'news-list',
+          component: () => import('@/views/analysis/NewsList.vue'),
+          meta: { title: 'CCTV新闻列表' }
+        },
+        {
+          path: '/analysis/news-detail/:id',
+          name: 'news-detail',
+          component: () => import('@/views/analysis/NewsDetail.vue'),
+          meta: { title: '新闻详情' }
         }
       ]
     },
