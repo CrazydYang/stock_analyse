@@ -53,7 +53,7 @@ export interface HistoricalRpsResponse {
 export async function getIndexRps(periods: string = "5,20,60", save: boolean = false): Promise<IndexRpsResponse> {
   try {
     const response = await axios.get<IndexRpsResponse>(
-      `http://47.120.53.64/django/api/strategy/index-rps/`,
+      `/django/api/strategy/index-rps/`,
       {
         params: {
           periods,
