@@ -293,8 +293,8 @@ const refreshData = async () => {
     
     // 由于在axiosConfig.ts中已经处理了非200状态码的情况
     // 这里直接使用返回的数据，不需要再次检查code
-    rpsData.value = response.data.data
-    queryTime.value = response.data.query_time
+    rpsData.value = response.data
+    queryTime.value = response.query_time
     ElMessage.success('RPS数据加载成功')
   } catch (error) {
     console.error('加载RPS数据失败:', error)
@@ -315,7 +315,7 @@ const saveToDatabase = async () => {
     
     // 由于在axiosConfig.ts中已经处理了非200状态码的情况
     // 这里直接使用返回的数据，不需要再次检查code
-    const savedCount = response.data.saved_count
+    const savedCount = response.saved_count
     ElMessage.success(`成功保存${savedCount}条RPS数据到数据库`)
   } catch (error) {
     console.error('保存RPS数据失败:', error)
