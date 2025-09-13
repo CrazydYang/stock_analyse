@@ -21,9 +21,9 @@
           label-position="top"
           @submit.prevent="validateInviteCodeStep"
         >
-          <el-form-item label="邀请码" prop="inviteCode">
+          <el-form-item label="邀请码" prop="invitationCode">
             <el-input
-              v-model="registerForm.inviteCode"
+              v-model="registerForm.invitationCode"
               placeholder="请输入邀请码"
               prefix-icon="Key"
             />
@@ -68,6 +68,14 @@
             />
           </el-form-item>
 
+          <el-form-item label="手机号" prop="phone">
+            <el-input
+              v-model="registerForm.phone"
+              placeholder="请输入手机号"
+              prefix-icon="Phone"
+            />
+          </el-form-item>
+
           <el-form-item label="密码" prop="password">
             <el-input
               v-model="registerForm.password"
@@ -104,7 +112,7 @@
           <el-descriptions :column="1" border>
             <el-descriptions-item label="用户名">{{ registerForm.username }}</el-descriptions-item>
             <el-descriptions-item label="邮箱">{{ registerForm.email }}</el-descriptions-item>
-            <el-descriptions-item label="邀请码">{{ registerForm.inviteCode }}</el-descriptions-item>
+            <el-descriptions-item label="邀请码">{{ registerForm.invitationCode }}</el-descriptions-item>
           </el-descriptions>
         </div>
 
@@ -162,16 +170,17 @@ const errorMessage = ref('');
 
 // 注册表单
 const registerForm = reactive({
-  inviteCode: '',
+  invitationCode: '',
   username: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  phone: ''
 });
 
 // 邀请码验证规则
 const inviteCodeRules = {
-  inviteCode: [
+  invitationCode: [
     { required: true, message: '请输入邀请码', trigger: 'blur' },
     { min: 6, message: '邀请码长度不能少于6个字符', trigger: 'blur' }
   ]
@@ -187,9 +196,12 @@ const accountRules = {
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
   ],
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
+  ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
+    { min: 8, message: '密码长度不能少于8个字符', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
@@ -216,16 +228,13 @@ async function validateInviteCodeStep() {
     isValidatingCode.value = true;
     errorMessage.value = '';
     
-    const response = await validateInviteCode(registerForm.inviteCode);
-    
-    if (response.valid) {
-      ElMessage.success('邀请码验证成功');
-      currentStep.value = 1; // 进入下一步
-    } else {
-      errorMessage.value = response.message || '邀请码无效';
-    }
+    const response = await validateInviteCode(registerForm.invitationCode);
+    console.log('邀请码验证响应:', response);
+    // 如果代码执行到这里，说明响应成功（code === 200）
+    ElMessage.success('邀请码验证成功');
+    currentStep.value = 1; // 进入下一步
   } catch (e: any) {
-    errorMessage.value = e.response?.data?.message || '邀请码验证失败';
+    errorMessage.value = e.message || '邀请码验证失败';
   } finally {
     isValidatingCode.value = false;
   }
@@ -253,17 +262,25 @@ async function submitRegistration() {
       registerForm.username,
       registerForm.email,
       registerForm.password,
-      registerForm.inviteCode
+      registerForm.invitationCode,
+      registerForm.phone
     );
     
-    // 注册成功提示
+    // 如果没有抛出异常，说明注册和自动登录都成功了
     ElMessage.success('注册成功，欢迎加入！');
-    
-    // 跳转到首页
     router.push('/');
-  } catch (e) {
+  } catch (e: any) {
+    console.error('注册过程中发生错误:', e);
+    // 检查错误对象中是否包含响应数据
+    if (e.response && e.response.data && e.response.data.code === 200) {
+      // 如果响应码是200，说明注册成功了，但可能登录过程失败
+      ElMessage.success('注册成功，但自动登录失败，请手动登录');
+      router.push('/login');
+      return;
+    }
+    
     // 显示错误信息
-    errorMessage.value = authError.value || '注册失败，请稍后再试';
+    errorMessage.value = authError.value || e.message || '注册失败，请稍后再试';
   } finally {
     isRegistering.value = false;
   }
@@ -278,6 +295,14 @@ async function submitRegistration() {
   min-height: 100vh;
   background-color: #f5f7fa;
   padding: 2rem 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .register-card {

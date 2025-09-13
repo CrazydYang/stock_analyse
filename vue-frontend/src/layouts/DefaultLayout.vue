@@ -164,39 +164,40 @@ const sidebarWidth = computed(() => {
 })
 
 // 菜单项配置
-const menuItems = [
-  {
-    path: '/',
-    title: '首页',
-    icon: 'HomeFilled'
-  },
-  {
-    path: '/stock-picker',
-    title: '智能选股',
-    icon: 'MagicStick',
-    children: [
-      {
-        path: '/stock-viewer',
-        title: '股票筛选',
-        icon: 'DataAnalysis'
-      },
-      {
-        path: '/industries',
-        title: '行业分析',
-        icon: 'Document'
-      }
-    ]
-  },
-  {
-    path: '/analysis',
-    title: '股票分析',
-    icon: 'TrendCharts',
-    children: [
-      {
-        path: '/analysis/market',
-        title: '大盘分析',
-        icon: 'TrendCharts'
-      },
+const menuItems = computed(() => {
+  const baseMenuItems = [
+    {
+      path: '/',
+      title: '首页',
+      icon: 'HomeFilled'
+    },
+    {
+      path: '/stock-picker',
+      title: '智能选股',
+      icon: 'MagicStick',
+      children: [
+        {
+          path: '/stock-viewer',
+          title: '股票筛选',
+          icon: 'DataAnalysis'
+        },
+        {
+          path: '/industries',
+          title: '行业分析',
+          icon: 'Document'
+        }
+      ]
+    },
+    {
+      path: '/analysis',
+      title: '股票分析',
+      icon: 'TrendCharts',
+      children: [
+        {
+          path: '/analysis/market',
+          title: '大盘分析',
+          icon: 'TrendCharts'
+        },
       {
         path: '/analysis/congestion',
         title: '行业拥挤度',
@@ -242,16 +243,23 @@ const menuItems = [
     ]
   },
   {
-    path: '/portfolio',
-    title: '投资组合',
-    icon: 'DataAnalysis'
-  },
-  {
-    path: '/settings',
-    title: '系统设置',
-    icon: 'Setting'
+        path: '/portfolio',
+        title: '投资组合',
+        icon: 'DataAnalysis'
+      }
+  ];
+  
+  // 只有管理员用户才能看到系统设置菜单
+  if (currentUser.value && currentUser.value.is_admin) {
+    baseMenuItems.push({
+      path: '/settings',
+      title: '系统设置',
+      icon: 'Setting'
+    });
   }
-]
+  
+  return baseMenuItems;
+})
 
 // 面包屑导航
 const breadcrumbs = computed(() => {

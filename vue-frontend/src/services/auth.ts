@@ -1,6 +1,12 @@
 import { ref, reactive } from 'vue';
-import type { User } from './userApi';
-import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout } from './userApi';
+import type { User, AuthResponseData } from './userApi';
+import { 
+  login as apiLogin, 
+  register as apiRegister, 
+  getCurrentUser, 
+  logoutApi, 
+  clearAuthStorage 
+} from './userApi';
 
 // 创建响应式状态
 const currentUser = ref<User | null>(null);
@@ -21,23 +27,34 @@ export function initAuth() {
 }
 
 // 登录函数
-export async function login(email: string, password: string) {
+export async function login(username: string, password: string) {
   isLoading.value = true;
   error.value = null;
   
   try {
-    const response = await apiLogin({ email, password });
+    const response = await apiLogin({ username, password });
+    console.log('登录响应:', response);
     
     // 保存token和用户信息到localStorage
     localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    
+    // 构建用户对象
+    const user: User = {
+      id: response.id,
+      username: response.username,
+      email: response.email,
+      is_admin: response.is_admin,
+      created_at: new Date().toISOString() // 后端没有返回created_at，使用当前时间
+    };
+    
+    localStorage.setItem('user', JSON.stringify(user));
     
     // 更新当前用户
-    currentUser.value = response.user;
+    currentUser.value = user;
     
     return response;
   } catch (e: any) {
-    error.value = e.response?.data?.message || '登录失败，请检查您的凭据';
+    error.value = e.response?.data?.message || e.message || '登录失败，请检查您的凭据';
     throw e;
   } finally {
     isLoading.value = false;
@@ -45,23 +62,21 @@ export async function login(email: string, password: string) {
 }
 
 // 注册函数
-export async function register(username: string, email: string, password: string, inviteCode: string) {
+export async function register(username: string, email: string, password: string, invitationCode: string, phone?: string) {
   isLoading.value = true;
   error.value = null;
   
   try {
-    const response = await apiRegister({ username, email, password, inviteCode });
+    const response = await apiRegister({ username, email, password, invitation_code: invitationCode, phone });
     
-    // 保存token和用户信息到localStorage
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    
-    // 更新当前用户
-    currentUser.value = response.user;
-    
-    return response;
+    if (response) {
+      // 注册成功后，需要登录获取token
+      return await login(username, password);
+    } else {
+      throw new Error(response || '注册失败');
+    }
   } catch (e: any) {
-    error.value = e.response?.data?.message || '注册失败，请稍后再试';
+    error.value = e.response?.data?.message || e.message || '注册失败，请稍后再试';
     throw e;
   } finally {
     isLoading.value = false;
@@ -74,12 +89,17 @@ export async function fetchCurrentUser() {
   error.value = null;
   
   try {
-    const user = await getCurrentUser();
-    currentUser.value = user;
-    localStorage.setItem('user', JSON.stringify(user));
-    return user;
+    const response = await getCurrentUser();
+    
+    if (response.code === 200 && response.data) {
+      currentUser.value = response.data;
+      localStorage.setItem('user', JSON.stringify(response.data));
+      return response.data;
+    } else {
+      throw new Error(response.message || '获取用户信息失败');
+    }
   } catch (e: any) {
-    error.value = e.response?.data?.message || '获取用户信息失败';
+    error.value = e.response?.data?.message || e.message || '获取用户信息失败';
     logout(); // 如果获取用户信息失败，则登出
     throw e;
   } finally {
@@ -88,9 +108,17 @@ export async function fetchCurrentUser() {
 }
 
 // 登出函数
-export function logout() {
-  apiLogout();
-  currentUser.value = null;
+export async function logout() {
+  try {
+    // 调用后端登出API
+    await logoutApi();
+  } catch (e) {
+    console.error('登出API调用失败:', e);
+  } finally {
+    // 无论API是否成功，都清除本地存储
+    clearAuthStorage();
+    currentUser.value = null;
+  }
 }
 
 // 检查是否已认证

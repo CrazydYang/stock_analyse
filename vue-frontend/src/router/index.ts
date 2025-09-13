@@ -131,7 +131,7 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
-      meta: { title: '系统设置' }
+      meta: { title: '系统设置', requiresAdmin: true }
     }
   ],
 })
@@ -141,15 +141,36 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 股票分析系统` : '股票分析系统'
   
-  // 检查路由是否需要认证
+  // 检查路由是否需要认证，默认所有路由都需要认证，除非明确设置requiresAuth为false
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
-  next()
+  
   // 如果路由需要认证且用户未登录，则重定向到登录页面
   if (requiresAuth && !isAuthenticated()) {
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else {
-    next()
+    return
   }
+  
+  // 检查是否需要管理员权限
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin === true)
+  
+  // 如果需要管理员权限，检查当前用户是否是管理员
+  if (requiresAdmin) {
+    const userJson = localStorage.getItem('user')
+    if (userJson) {
+      const user = JSON.parse(userJson)
+      if (!user.is_admin) {
+        // 如果不是管理员，重定向到首页
+        next({ name: 'home' })
+        return
+      }
+    } else {
+      // 如果没有用户信息，重定向到登录页面
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+  
+  next()
 })
 
 export default router

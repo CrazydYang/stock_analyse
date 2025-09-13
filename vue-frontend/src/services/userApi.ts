@@ -1,14 +1,24 @@
-import axios from 'axios';
+import axios from './axiosConfig';
 
 // API基础URL
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/django/api/user';
+
+// 通用响应格式
+export interface ApiResponse<T = any> {
+  code: number;
+  message: string;
+  timestamp: string;
+  data?: T;
+}
 
 // 用户接口定义
 export interface User {
   id: number;
   username: string;
   email: string;
-  role: string;
+  phone?: string;
+  is_admin?: boolean;
+  last_login?: string;
   created_at: string;
 }
 
@@ -17,25 +27,33 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  inviteCode: string;
+  phone?: string;
+  invitation_code?: string;
 }
 
 // 登录请求接口
 export interface LoginRequest {
-  email: string;
+  username: string; // 用户名或邮箱
   password: string;
 }
 
-// 认证响应接口
-export interface AuthResponse {
+// 认证响应数据
+export interface AuthResponseData {
+  id: number;
+  username: string;
+  email: string;
+  is_admin: boolean;
   token: string;
-  user: User;
 }
 
-// 邀请码验证响应
-export interface InviteCodeResponse {
-  valid: boolean;
-  message: string;
+// 邀请码接口
+export interface InvitationCode {
+  id?: number;
+  code: string;
+  is_used?: boolean;
+  used_by?: string | null;
+  expires_at?: string;
+  created_at?: string;
 }
 
 /**
@@ -43,9 +61,9 @@ export interface InviteCodeResponse {
  * @param data 注册信息
  * @returns 认证响应
  */
-export async function register(data: RegisterRequest): Promise<AuthResponse> {
+export async function register(data: RegisterRequest): Promise<User> {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/register`, data);
+    const response = await axios.post(`${API_BASE_URL}/register/`, data);
     return response.data;
   } catch (error) {
     console.error('注册失败:', error);
@@ -58,9 +76,9 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
  * @param data 登录信息
  * @returns 认证响应
  */
-export async function login(data: LoginRequest): Promise<AuthResponse> {
+export async function login(data: LoginRequest): Promise<AuthResponseData> {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, data);
+    const response = await axios.post(`${API_BASE_URL}/login/`, data);
     return response.data;
   } catch (error) {
     console.error('登录失败:', error);
@@ -70,14 +88,12 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
 
 /**
  * 验证邀请码
- * @param inviteCode 邀请码
+ * @param code 邀请码
  * @returns 邀请码验证响应
  */
-export async function validateInviteCode(inviteCode: string): Promise<InviteCodeResponse> {
+export async function validateInviteCode(code: string): Promise<ApiResponse> {
   try {
-    const response = await axios.get(`${API_BASE_URL}/auth/invite-code/validate`, {
-      params: { code: inviteCode }
-    });
+    const response = await axios.post(`${API_BASE_URL}/invitation/validate/`, { code });
     return response.data;
   } catch (error) {
     console.error('邀请码验证失败:', error);
@@ -89,14 +105,14 @@ export async function validateInviteCode(inviteCode: string): Promise<InviteCode
  * 获取当前用户信息
  * @returns 用户信息
  */
-export async function getCurrentUser(): Promise<User> {
+export async function getCurrentUser(): Promise<ApiResponse<User>> {
   try {
     const token = localStorage.getItem('token');
     if (!token) {
       throw new Error('未登录');
     }
     
-    const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+    const response = await axios.get(`${API_BASE_URL}/info/`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -104,6 +120,29 @@ export async function getCurrentUser(): Promise<User> {
     return response.data;
   } catch (error) {
     console.error('获取用户信息失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 用户登出
+ * @returns 登出响应
+ */
+export async function logoutApi(): Promise<ApiResponse> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('未登录');
+    }
+    
+    const response = await axios.post(`${API_BASE_URL}/logout/`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('登出失败:', error);
     throw error;
   }
 }
@@ -117,9 +156,57 @@ export function isAuthenticated(): boolean {
 }
 
 /**
- * 登出
+ * 本地登出（清除本地存储）
  */
-export function logout(): void {
+export function clearAuthStorage(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+}
+
+/**
+ * 获取邀请码列表
+ * @returns 邀请码列表
+ */
+export async function getInvitationCodes(): Promise<InvitationCode[]> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('未登录');
+    }
+    
+    const response = await axios.get(`${API_BASE_URL}/invitation/`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      withCredentials: true // 添加此配置以解决CSRF错误
+    });
+    return response.data;
+  } catch (error) {
+    console.error('获取邀请码列表失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 生成邀请码
+ * @returns 新生成的邀请码
+ */
+export async function generateInvitationCode(): Promise<InvitationCode> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('未登录');
+    }
+    
+    const response = await axios.post(`${API_BASE_URL}/invitation/`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      withCredentials: true // 添加此配置以解决CSRF错误
+    });
+    return response.data;
+  } catch (error) {
+    console.error('生成邀请码失败:', error);
+    throw error;
+  }
 }

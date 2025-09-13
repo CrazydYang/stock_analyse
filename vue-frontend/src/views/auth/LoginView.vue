@@ -7,18 +7,17 @@
       </div>
 
       <el-form
-        ref="loginForm"
+        ref="loginForm$"
         :model="loginForm"
         :rules="loginRules"
         label-position="top"
         @submit.prevent="handleLogin"
       >
-        <el-form-item label="邮箱" prop="email">
+        <el-form-item label="用户名/邮箱" prop="username">
           <el-input
-            v-model="loginForm.email"
-            placeholder="请输入邮箱"
-            type="email"
-            prefix-icon="Message"
+            v-model="loginForm.username"
+            placeholder="请输入用户名或邮箱"
+            prefix-icon="User"
           />
         </el-form-item>
 
@@ -40,7 +39,7 @@
         <el-form-item>
           <el-button
             type="primary"
-            native-type="submit"
+            @click="handleLogin"
             :loading="isLoading"
             class="login-button"
           >
@@ -76,19 +75,19 @@ const route = useRoute();
 
 // 表单引用
 const loginForm = reactive({
-  email: '',
+  username: '',
   password: ''
 });
 
 // 表单验证规则
 const loginRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+  username: [
+    { required: true, message: '请输入用户名或邮箱', trigger: 'blur' },
+    { min: 3, message: '用户名长度不能少于3个字符', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
+    { min: 8, message: '密码长度不能少于8个字符', trigger: 'blur' }
   ]
 };
 
@@ -100,11 +99,14 @@ const loginForm$ = ref();
 // 登录处理
 async function handleLogin() {
   try {
+    // 清空错误信息
+    errorMessage.value = '';
+    
     // 表单验证
     await loginForm$.value.validate();
     
     // 调用登录API
-    await login(loginForm.email, loginForm.password);
+    await login(loginForm.username, loginForm.password);
     
     // 登录成功提示
     ElMessage.success('登录成功');
@@ -112,9 +114,10 @@ async function handleLogin() {
     // 如果有重定向参数，则跳转到该页面，否则跳转到首页
     const redirectPath = route.query.redirect as string || '/';
     router.push(redirectPath);
-  } catch (e) {
+  } catch (e: any) {
+    console.error('登录过程中发生错误:', e);
     // 显示错误信息
-    errorMessage.value = authError.value || '登录失败，请检查您的凭据';
+    errorMessage.value = authError.value || e.message || '登录失败，请检查您的凭据';
   }
 }
 
@@ -131,6 +134,14 @@ function forgotPassword() {
   align-items: center;
   min-height: 100vh;
   background-color: #f5f7fa;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .login-card {
