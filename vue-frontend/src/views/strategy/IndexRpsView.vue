@@ -291,13 +291,11 @@ const refreshData = async () => {
     const periodsStr = displayPeriods.value.join(',')
     const response = await getIndexRps(periodsStr)
     
-    if (response.code === 200) {
-      rpsData.value = response.data.data
-      queryTime.value = response.data.query_time
-      ElMessage.success('RPS数据加载成功')
-    } else {
-      ElMessage.error(`加载失败: ${response.message}`)
-    }
+    // 由于在axiosConfig.ts中已经处理了非200状态码的情况
+    // 这里直接使用返回的数据，不需要再次检查code
+    rpsData.value = response.data.data
+    queryTime.value = response.data.query_time
+    ElMessage.success('RPS数据加载成功')
   } catch (error) {
     console.error('加载RPS数据失败:', error)
     ElMessage.error('加载RPS数据失败，请稍后重试')
@@ -315,12 +313,10 @@ const saveToDatabase = async () => {
     const periodsStr = displayPeriods.value.join(',')
     const response = await getIndexRps(periodsStr, true)
     
-    if (response.code === 200) {
-      const savedCount = response.data.saved_count
-      ElMessage.success(`成功保存${savedCount}条RPS数据到数据库`)
-    } else {
-      ElMessage.error(`保存失败: ${response.message}`)
-    }
+    // 由于在axiosConfig.ts中已经处理了非200状态码的情况
+    // 这里直接使用返回的数据，不需要再次检查code
+    const savedCount = response.data.saved_count
+    ElMessage.success(`成功保存${savedCount}条RPS数据到数据库`)
   } catch (error) {
     console.error('保存RPS数据失败:', error)
     ElMessage.error('保存RPS数据失败，请稍后重试')
