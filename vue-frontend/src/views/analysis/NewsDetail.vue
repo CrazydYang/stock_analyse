@@ -82,10 +82,10 @@ async function fetchNewsDetail() {
   try {
     const data = await getNewsDetail(newsId as string)
     
-    if (data.code === 200) {
-      newsDetail.value = data.data
+    if (data) {
+      newsDetail.value = data
     } else {
-      ElMessage.error(`获取新闻详情失败: ${data.message}`)
+      ElMessage.error(`获取新闻详情失败: ${data}`)
     }
   } catch (error) {
     console.error('获取新闻详情失败:', error)

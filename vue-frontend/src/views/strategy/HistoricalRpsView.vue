@@ -231,18 +231,20 @@ const refreshData = async () => {
       queryParams.value.offset
     )
     
-    // 由于在axiosConfig.ts中已经处理了非200状态码的情况
-    // 这里直接使用返回的数据，不需要再次检查code
-    historicalData.value = response.data.data
-    totalCount.value = response.data.total
-    
-    // 如果有数据，默认选择第一个指数
-    if (historicalData.value.length > 0 && !selectedIndexCode.value) {
-      selectedIndexCode.value = historicalData.value[0].index_code
-      updateChart()
+    if (response.code === 200) {
+      historicalData.value = response.data.data
+      totalCount.value = response.data.total
+      
+      // 如果有数据，默认选择第一个指数
+      if (historicalData.value.length > 0 && !selectedIndexCode.value) {
+        selectedIndexCode.value = historicalData.value[0].index_code
+        updateChart()
+      }
+      
+      ElMessage.success('历史RPS数据加载成功')
+    } else {
+      ElMessage.error(`加载失败: ${response.message}`)
     }
-    
-    ElMessage.success('历史RPS数据加载成功')
   } catch (error) {
     console.error('加载历史RPS数据失败:', error)
     ElMessage.error('加载历史RPS数据失败，请稍后重试')

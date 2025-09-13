@@ -91,12 +91,12 @@ async function fetchNewsList() {
       (currentPage.value - 1) * pageSize.value,
       searchKeyword.value || undefined
     )
-    
-    if (data.code === 200) {
-      newsList.value = data.data.items
-      total.value = data.data.total
+    console.log(data)
+    if (data) {
+      newsList.value = data.news
+      total.value = data.total
     } else {
-      ElMessage.error(`获取新闻列表失败: ${data.message}`)
+      ElMessage.error(`获取新闻列表失败: ${data}`)
     }
   } catch (error) {
     console.error('获取新闻列表失败:', error)

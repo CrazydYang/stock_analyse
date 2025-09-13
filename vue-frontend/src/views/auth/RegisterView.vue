@@ -295,14 +295,6 @@ async function submitRegistration() {
   min-height: 100vh;
   background-color: #f5f7fa;
   padding: 2rem 0;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
 }
 
 .register-card {

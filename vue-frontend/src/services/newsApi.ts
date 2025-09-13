@@ -1,4 +1,8 @@
 // CCTV新闻API服务
+import axios from './axiosConfig';
+
+// API基础URL
+const API_BASE_URL = '/django/api/news';
 
 // 新闻项接口定义
 export interface NewsItem {
@@ -12,25 +16,31 @@ export interface NewsItem {
 }
 
 // API响应接口定义
-interface ApiResponse<T> {
+export interface ApiResponse<T = any> {
   code: number
   message: string
-  data: T
+  timestamp: string
+  data?: T
 }
 
 interface NewsListResponse {
   total: number
-  items: NewsItem[]
+  news: NewsItem[]
   limit: number
   offset: number
 }
 
 // 获取新闻列表
-export async function getNewsList(limit: number = 10, offset: number = 0, keyword?: string): Promise<ApiResponse<NewsListResponse>> {
+export async function getNewsList(limit: number = 10, offset: number = 0, keyword?: string): Promise<NewsListResponse> {
   try {
-    const url = `/api/cctv_news/?limit=${limit}&offset=${offset}`
-    const response = await fetch(url)
-    return await response.json()
+    const response = await axios.get(`${API_BASE_URL}/`, {
+      params: {
+        limit,
+        offset,
+        keyword
+      }
+    })
+    return response.data
   } catch (error) {
     console.error('获取新闻列表失败:', error)
     throw error
@@ -38,10 +48,10 @@ export async function getNewsList(limit: number = 10, offset: number = 0, keywor
 }
 
 // 获取新闻详情
-export async function getNewsDetail(id: number | string): Promise<ApiResponse<NewsItem>> {
+export async function getNewsDetail(id: number | string): Promise<NewsItem> {
   try {
-    const response = await fetch(`/api/cctv_news/${id}`)
-    return await response.json()
+    const response = await axios.get(`${API_BASE_URL}/${id}`)
+    return response.data
   } catch (error) {
     console.error('获取新闻详情失败:', error)
     throw error
@@ -51,8 +61,12 @@ export async function getNewsDetail(id: number | string): Promise<ApiResponse<Ne
 // 获取最新新闻
 export async function getLatestNews(limit: number = 5): Promise<ApiResponse<{total: number, items: NewsItem[]}>> {
   try {
-    const response = await fetch(`http://127.0.0.1:5001/api/cctv_news/latest?limit=${limit}`)
-    return await response.json()
+    const response = await axios.get(`${API_BASE_URL}/latest`, {
+      params: {
+        limit
+      }
+    })
+    return response.data
   } catch (error) {
     console.error('获取最新新闻失败:', error)
     throw error
@@ -62,8 +76,13 @@ export async function getLatestNews(limit: number = 5): Promise<ApiResponse<{tot
 // 搜索新闻
 export async function searchNews(keyword: string, limit: number = 20): Promise<ApiResponse<{total: number, keyword: string, items: NewsItem[]}>> {
   try {
-    const response = await fetch(`http://127.0.0.1:5001/api/cctv_news/search?keyword=${encodeURIComponent(keyword)}&limit=${limit}`)
-    return await response.json()
+    const response = await axios.get(`${API_BASE_URL}/search`, {
+      params: {
+        keyword,
+        limit
+      }
+    })
+    return response.data
   } catch (error) {
     console.error('搜索新闻失败:', error)
     throw error
