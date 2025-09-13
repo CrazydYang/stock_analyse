@@ -225,6 +225,23 @@ const menuItems = [
     ]
   },
   {
+    path: '/strategy',
+    title: '策略分析',
+    icon: 'DataAnalysis',
+    children: [
+      {
+        path: '/strategy/index-rps',
+        title: '指数RPS强度排名',
+        icon: 'DataAnalysis'
+      },
+      // {
+      //   path: '/strategy/historical-rps',
+      //   title: '历史RPS数据分析',
+      //   icon: 'DataAnalysis'
+      // }
+    ]
+  },
+  {
     path: '/portfolio',
     title: '投资组合',
     icon: 'DataAnalysis'

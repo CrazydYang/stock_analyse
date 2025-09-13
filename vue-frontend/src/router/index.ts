@@ -103,6 +103,25 @@ const router = createRouter({
       ]
     },
     {
+      path: '/strategy',
+      name: 'strategy',
+      meta: { title: '策略分析' },
+      children: [
+        {
+          path: '/strategy/index-rps',
+          name: 'index-rps',
+          component: () => import('@/views/strategy/IndexRpsView.vue'),
+          meta: { title: '指数RPS强度排名' }
+        },
+        {
+          path: '/strategy/historical-rps',
+          name: 'historical-rps',
+          component: () => import('@/views/strategy/HistoricalRpsView.vue'),
+          meta: { title: '历史RPS数据分析' }
+        }
+      ]
+    },
+    {
       path: '/portfolio',
       name: 'portfolio',
       component: () => import('../views/PortfolioView.vue'),
