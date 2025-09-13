@@ -1,5 +1,5 @@
 // 股票策略API服务
-import axios from 'axios'
+import axios from './axiosConfig'
 
 // 指数RPS强度排名接口类型定义
 export interface IndexRpsItem {
@@ -82,7 +82,7 @@ export async function getHistoricalRps(
 ): Promise<HistoricalRpsResponse> {
   try {
     const response = await axios.get<HistoricalRpsResponse>(
-      `http://47.120.53.64/django/api/strategy/historical-rps/`,
+      `/django/api/strategy/historical-rps/`,
       {
         params: {
           period,
