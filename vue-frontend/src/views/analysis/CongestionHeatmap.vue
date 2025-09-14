@@ -5,10 +5,10 @@
         <div class="header-controls">
           <h3>行业拥挤度热力图</h3>
           <div class="controls">
-            <el-radio-group v-model="sortMetric" @change="updateChart">
+            <!-- <el-radio-group v-model="sortMetric" @change="updateChart">
               <el-radio-button label="turnover">等权换手率分位数</el-radio-button>
               <el-radio-button label="amount">成交金额占比分位数</el-radio-button>
-            </el-radio-group>
+            </el-radio-group> -->
             <el-select v-model="selectedDateRange" @change="updateChart" placeholder="选择日期范围" style="width: 150px; margin-left: 10px;">
               <el-option label="最近10天" value="10" />
                <el-option label="最近15天" value="15" />
