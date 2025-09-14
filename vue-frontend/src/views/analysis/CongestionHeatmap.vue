@@ -60,7 +60,7 @@ interface IndustryData {
 
 const chartContainer = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
-const sortMetric = ref('turnover')
+const sortMetric = ref('amount')
 const selectedDateRange = ref('20')
 const sortAscending = ref(false)
 const searchKeyword = ref('')
