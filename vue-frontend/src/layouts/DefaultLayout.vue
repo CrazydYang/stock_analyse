@@ -243,9 +243,9 @@ const menuItems = computed(() => {
     ]
   },
   {
-        path: '/portfolio',
-        title: '投资组合',
-        icon: 'DataAnalysis'
+        path: '/forum/posts',
+        title: '论坛讨论区',
+        icon: 'Document'
       }
   ];
   

@@ -122,6 +122,25 @@ const router = createRouter({
       ]
     },
     {
+      path: '/forum',
+      name: 'forum',
+      meta: { title: '论坛讨论区' },
+      children: [
+        {
+          path: '/forum/posts',
+          name: 'forum-posts',
+          component: () => import('@/views/forum/ForumListView.vue'),
+          meta: { title: '帖子列表' }
+        },
+        {
+          path: '/forum/posts/:id',
+          name: 'post-detail',
+          component: () => import('@/views/forum/PostDetailView.vue'),
+          meta: { title: '帖子详情' }
+        }
+      ]
+    },
+    {
       path: '/portfolio',
       name: 'portfolio',
       component: () => import('../views/PortfolioView.vue'),
