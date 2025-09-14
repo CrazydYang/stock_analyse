@@ -38,11 +38,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch, reactive } from 'vue'
 import * as echarts from 'echarts'
 import { Search } from '@element-plus/icons-vue'
+import { ElMessage, ElLoading } from 'element-plus'
+import { fetchIndustryTurnoverPercentile } from '@/services/industry-turnover-percentile'
+import type { IndustryTurnoverPercentileItem } from '@/services/industry-turnover-percentile'
 
-// 模拟数据结构
+// 数据结构定义
+// 使用从stockApi导入的IndustryTurnoverPercentileItem接口
+
 interface CongestionData {
   turnoverRateFQuantile: number
   amountCongestionQuantile: number
@@ -59,30 +64,98 @@ const sortMetric = ref('turnover')
 const selectedDateRange = ref('20')
 const sortAscending = ref(false)
 const searchKeyword = ref('')
+const loading = ref(false)
 
-// 导入真实数据
-import industryDataJson from './industry_data.json'
+// 数据存储
+const allIndustries = ref<IndustryData[]>([])
+const allDates = ref<string[]>([])
 
-// 处理真实数据
-const allIndustries: IndustryData[] = industryDataJson.swCodeNames.map(item => ({
-  name: item.indexName,
-  data: (industryDataJson.congestions as Record<string, any>)[item.indexCode] || []
-}))
-
-const allDates = industryDataJson.dates
+// 从API获取数据
+const fetchData = async () => {
+  loading.value = true
+  try {
+    // 计算日期范围
+    const today = new Date()
+    const endDate = today.toISOString().split('T')[0]
+    
+    // 根据选择的日期范围计算开始日期
+    const days = selectedDateRange.value === 'all' ? 30 : parseInt(selectedDateRange.value)
+    const startDate = new Date(today)
+    startDate.setDate(today.getDate() - days)
+    const formattedStartDate = startDate.toISOString().split('T')[0]
+    
+    // 使用stockApi中的函数获取数据
+    const response = await fetchIndustryTurnoverPercentile(formattedStartDate, endDate)
+    
+    if (response) {
+      // 处理API返回的数据
+      const apiData = response.data
+      
+      // 确保apiData是数组
+      if (!Array.isArray(apiData)) {
+        console.error('API返回的数据不是数组:', apiData)
+        throw new Error('API返回的数据格式不正确')
+      }
+      
+      // 提取所有唯一日期
+      const uniqueDates = [...new Set(apiData.map((item: IndustryTurnoverPercentileItem) => item.date))].sort() as string[]
+      allDates.value = uniqueDates
+      
+      // 按行业分组数据
+      const industriesMap = new Map<string, {name: string, data: CongestionData[]}>() 
+      
+      apiData.forEach((item: IndustryTurnoverPercentileItem) => {
+        if (!industriesMap.has(item.sector_code)) {
+          industriesMap.set(item.sector_code, {
+            name: item.sector_name,
+            data: []
+          })
+        }
+        
+        // 为每个日期添加数据
+        const industryData = industriesMap.get(item.sector_code)!
+        const dateIndex = uniqueDates.indexOf(item.date)
+        
+        // 确保数据数组长度与日期数组一致
+        while (industryData.data.length < uniqueDates.length) {
+          industryData.data.push({
+            turnoverRateFQuantile: 0,
+            amountCongestionQuantile: 0
+          })
+        }
+        
+        // 更新对应日期的数据
+        industryData.data[dateIndex] = {
+          turnoverRateFQuantile: item.turnover_ratio_percentile,
+          amountCongestionQuantile: item.turnover_ratio_percentile // 这里使用相同的值，因为API中没有提供amountCongestionQuantile
+        }
+      })
+      
+      // 转换为数组
+      allIndustries.value = Array.from(industriesMap.values())
+    } else {
+      ElMessage.error('获取数据失败: ')
+    }
+  } catch (error) {
+    console.error('获取数据出错:', error)
+    ElMessage.error('获取数据出错，请检查网络连接或API服务是否可用')
+  } finally {
+    loading.value = false
+  }
+}
 
 // 根据选择的日期范围过滤数据
 const getFilteredData = () => {
-  let industries = allIndustries
+  let industries = allIndustries.value
   
   // 根据搜索关键词过滤行业
   if (searchKeyword.value.trim()) {
-    industries = allIndustries.filter(industry => 
+    industries = allIndustries.value.filter(industry => 
       industry.name.toLowerCase().includes(searchKeyword.value.toLowerCase())
     )
   }
   
-  const dates = selectedDateRange.value === 'all' ? allDates : allDates.slice(-parseInt(selectedDateRange.value))
+  const dates = selectedDateRange.value === 'all' ? allDates.value : allDates.value.slice(-parseInt(selectedDateRange.value))
   const filteredIndustries = industries.map(industry => ({
     ...industry,
     data: selectedDateRange.value === 'all' ? industry.data : industry.data.slice(-parseInt(selectedDateRange.value))
@@ -335,16 +408,36 @@ const handleResize = () => {
   }
 }
 
-// 监听日期范围、指标和搜索关键词变化
-watch([selectedDateRange, sortMetric, searchKeyword], () => {
+// 监听指标和搜索关键词变化
+watch([sortMetric, searchKeyword], () => {
+  if (chart) {
+    updateChart()
+  }
+})
+
+// 监听日期范围变化，重新获取数据
+watch(selectedDateRange, async () => {
+  await fetchData()
   if (chart) {
     updateChart()
   }
 })
 
 onMounted(async () => {
-  await nextTick()
-  initChart()
+  const loadingInstance = ElLoading.service({
+    target: '.congestion-heatmap',
+    text: '加载数据中...',
+    background: 'rgba(255, 255, 255, 0.7)'
+  })
+  
+  try {
+    await fetchData()
+    await nextTick()
+    initChart()
+  } finally {
+    loadingInstance.close()
+  }
+  
   window.addEventListener('resize', handleResize)
 })
 
