@@ -15,4 +15,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    host: true, // 监听所有地址，包括局域网和公网地址
+    proxy: {
+      '/django': {
+        target: 'http://47.120.53.64',
+        changeOrigin: true,
+      }
+    }
+  },
 })

@@ -2,7 +2,7 @@
 import axios from './axiosConfig'
 
 // API基础URL
-const API_BASE_URL = 'http://47.120.53.64/django/api/individual_stock'
+const API_BASE_URL = '/django/api/individual_stock'
 
 // 类型定义
 export interface StockHistoryDataItem {
