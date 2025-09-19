@@ -1,7 +1,7 @@
 import axios from './axiosConfig';
 
 // API基础URL
-const API_BASE_URL = '/django/api/user';
+const API_BASE_URL = 'http://47.120.53.64/django/api/user';
 
 // 通用响应格式
 export interface ApiResponse<T = any> {

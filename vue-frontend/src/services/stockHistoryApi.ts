@@ -1,8 +1,8 @@
 // 股票历史数据API服务
-import axios from 'axios'
+import axios from './axiosConfig'
 
 // API基础URL
-const API_BASE_URL = '/django/api/individual_stock'
+const API_BASE_URL = 'http://47.120.53.64/django/api/individual_stock'
 
 // 类型定义
 export interface StockHistoryDataItem {
@@ -65,27 +65,17 @@ export async function fetchStockHistoryData(
 ): Promise<StockHistoryDataItem[]> {
   try {
     // 构建查询参数
-    const params = new URLSearchParams()
-    if (startDate) params.append('start_date', startDate)
-    if (endDate) params.append('end_date', endDate)
-    if (adjust) params.append('adjust', adjust)
+    const params: Record<string, string> = {}
+    if (startDate) params.start_date = startDate
+    if (endDate) params.end_date = endDate
+    if (adjust) params.adjust = adjust
     
-    const queryString = params.toString() ? `?${params.toString()}` : ''
-    const url = `${API_BASE_URL}/stocks/${stockCode}/history/${queryString}`
+    const response = await axios.get<StockHistoryDataItem[]>(
+      `${API_BASE_URL}/stocks/${stockCode}/history/`,
+      { params }
+    )
     
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const result: StockHistoryApiResponse = await response.json()
-    
-    if (result.code !== 200) {
-      throw new Error(result.message || '获取股票历史数据失败')
-    }
-    
-    return result.data
+    return response.data
   } catch (error) {
     console.error(`获取股票 ${stockCode} 历史数据失败:`, error)
     throw error
@@ -99,19 +89,9 @@ export async function fetchStockHistoryData(
  */
 export async function fetchStockInfo(stockCode: string): Promise<StockInfoItem> {
   try {
-    const response = await fetch(`${API_BASE_URL}/stocks/${stockCode}/info/`)
+    const response = await axios.get<StockInfoItem>(`${API_BASE_URL}/stocks/${stockCode}/info/`)
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const result: StockInfoApiResponse = await response.json()
-    
-    if (result.code !== 200) {
-      throw new Error(result.message || '获取股票详细信息失败')
-    }
-    
-    return result.data
+    return response.data
   } catch (error) {
     console.error(`获取股票 ${stockCode} 详细信息失败:`, error)
     throw error
@@ -129,25 +109,16 @@ export async function fetchStockList(
   pageSize: number = 20
 ): Promise<{total: number, data: StockInfoItem[]}> {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.toString())
-    params.append('page_size', pageSize.toString())
-    
-    const response = await fetch(`${API_BASE_URL}/stocks/?${params.toString()}`)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const params = {
+      page: page.toString(),
+      page_size: pageSize.toString()
     }
     
-    const result = await response.json()
-    
-    if (result.code !== 200) {
-      throw new Error(result.message || '获取股票列表失败')
-    }
+    const response = await axios.get(`${API_BASE_URL}/stocks/`, { params })
     
     return {
-      total: result.data.total,
-      data: result.data.data
+      total: response.data.total,
+      data: response.data.data
     }
   } catch (error) {
     console.error('获取股票列表失败:', error)
