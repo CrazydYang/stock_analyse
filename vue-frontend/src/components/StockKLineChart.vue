@@ -1,0 +1,373 @@
+<template>
+  <div class="stock-kline-chart-container">
+    <div class="chart-header">
+      <h3 v-if="title">{{ title }}</h3>
+    </div>
+    
+    <div ref="chartContainer" class="chart-container"></div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import * as echarts from 'echarts'
+
+interface KLineDataItem {
+  date: string
+  open_price: number
+  close_price: number
+  high_price: number
+  low_price: number
+  volume: number
+  amount: number
+  [key: string]: any
+}
+
+interface TradeSignal {
+  date: string
+  type: 'buy' | 'sell'
+  price: number
+  description?: string
+}
+
+interface Props {
+  title?: string
+  stockCode: string
+  stockName?: string
+  klineData: KLineDataItem[]
+  tradeSignals?: TradeSignal[]
+  height?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  title: '',
+  stockName: '',
+  tradeSignals: () => [],
+  height: '600px'
+})
+
+const chartContainer = ref<HTMLDivElement>()
+let chart: echarts.ECharts | null = null
+
+// 初始化图表
+const initChart = () => {
+  if (!chartContainer.value) return
+  
+  // 销毁旧图表
+  if (chart) {
+    chart.dispose()
+  }
+  
+  // 创建新图表
+  chart = echarts.init(chartContainer.value)
+  
+  // 设置图表配置和数据
+  updateChart()
+  
+  // 添加窗口大小变化监听
+  window.addEventListener('resize', handleResize)
+}
+
+// 更新图表
+const updateChart = () => {
+  if (!chart || !props.klineData || props.klineData.length === 0) return
+  
+  // 准备数据
+  const dates = props.klineData.map(item => item.date)
+  const data = props.klineData.map(item => [
+    item.open_price,
+    item.close_price,
+    item.low_price,
+    item.high_price
+  ])
+
+  // 归一化日期工具与映射（兼容 YYYYMMDD / YYYY-MM-DD 等）
+  const normalizeDate = (s: string) => (s ? s.replace(/[^0-9]/g, '') : '')
+  const dateIndexMap: Map<string, number> = new Map()
+  dates.forEach((d, idx) => {
+    dateIndexMap.set(normalizeDate(d), idx)
+  })
+
+// 生成交易信号标记
+const generateTradeSignals = (signals: TradeSignal[], type: 'buy' | 'sell') => {
+  // 确保signals是有效的数组
+  if (!signals || !Array.isArray(signals) || signals.length === 0) {
+    return []
+  }
+  
+  // 对信号按日期排序，确保不会有重叠
+  const sortedSignals = [...signals]
+    .filter(signal => signal.type === type)
+    .sort((a, b) => {
+      const dateA = normalizeDate(a.date)
+      const dateB = normalizeDate(b.date)
+      return dateA.localeCompare(dateB)
+    })
+  
+  // 记录已处理的日期，避免在同一天生成多个标记
+  const processedDates = new Set()
+  
+  // 调试信息
+  console.log(`生成${type}信号标记，数量:`, sortedSignals.length)
+  if (type === 'sell') {
+    console.log('卖出信号原始数据:', JSON.stringify(sortedSignals))
+  }
+  
+  return sortedSignals
+    .map(signal => {
+      const idx = dateIndexMap.get(normalizeDate(signal.date))
+      if (idx === undefined) {
+        console.log(`信号日期${signal.date}不在K线数据范围内`)
+        return null
+      }
+      
+      // 如果同一天已经有标记，则跳过
+      const dateKey = normalizeDate(signal.date)
+      if (processedDates.has(dateKey)) {
+        // 可以选择返回不同样式的标记，或者完全跳过
+        console.log(`日期${signal.date}已有标记，跳过`)
+        return null
+      }
+      processedDates.add(dateKey)
+      
+      const isBuy = type === 'buy'
+      const priceOffset = isBuy ? 0.95 : 1.05 // 调整标记位置，避免被K线遮挡
+      
+      return {
+        name: isBuy ? '买入点' : '卖出点',
+        coord: [dates[idx], signal.price],
+        symbol: 'arrow',
+        symbolSize: 50,
+        symbolRotate: isBuy ? 0 : 180,
+        symbolOffset: [0, isBuy ? -100 : 20],
+        value: signal.price,
+        itemStyle: {
+          color: isBuy ? '#FF0000' : '#00FF00',
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: true,
+          color: '#fff',
+          backgroundColor: 'rgba(255,0,0,0.7)' ,
+          padding: [5, 10],
+          borderRadius: 4,
+          position: isBuy ? 'top' : 'bottom',
+          formatter: isBuy ? `买入\n${signal.price.toFixed(2)}元` : `卖出\n${signal.price.toFixed(2)}元`,
+          fontSize: 14,
+          fontWeight: 'bold'
+        },
+        tooltip: {
+          formatter: isBuy ? 
+            `买入\n价格: ${signal.price.toFixed(2)}\n${signal.description || ''}` : 
+            `卖出\n价格: ${signal.price.toFixed(2)}\n${signal.description || ''}`
+        }
+      }
+    })
+    .filter(v => v !== null)
+}
+
+// 确保每次更新时都重新生成交易信号
+console.log('更新图表，交易信号数量:', props.tradeSignals.length)
+console.log('交易信号详情:', JSON.stringify(props.tradeSignals))
+
+const buySignals = generateTradeSignals(props.tradeSignals, 'buy')
+const sellSignals = generateTradeSignals(props.tradeSignals, 'sell')
+
+console.log('生成的买入信号数量:', buySignals.length)
+console.log('生成的卖出信号数量:', sellSignals.length)
+console.log('卖出信号详情:', JSON.stringify(sellSignals))
+  
+  // 准备图表选项
+  const option: any = {
+    title: {
+      text: props.title || `${props.stockName}(${props.stockCode})K线图`,
+      left: 'center'
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      },
+      formatter: (params: any) => {
+        const date = params[0].axisValue
+        let res = `<div style="font-weight:bold;margin-bottom:5px;">${date}</div>`
+        
+        params.forEach((param: any) => {
+          const color = param.color
+          const seriesName = param.seriesName
+          const value = param.value
+          
+          if (seriesName === 'K线') {
+            res += `<div style="color:${color};">${seriesName}</div>`
+            res += `<div>开盘价: ${value[0]}</div>`
+            res += `<div>收盘价: ${value[1]}</div>`
+            res += `<div>最低价: ${value[2]}</div>`
+            res += `<div>最高价: ${value[3]}</div>`
+          }
+        })
+        
+        return res
+      }
+    },
+    grid: {
+      left: '10%',
+      right: '10%',
+      top: '15%',
+      bottom: '15%'
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      splitLine: { show: false }
+    },
+    yAxis: {
+      scale: true,
+      splitArea: {
+        show: true
+      }
+    },
+    dataZoom: [
+      {
+        type: 'inside',
+        start: 0,
+        end: 100
+      },
+      {
+        show: true,
+        type: 'slider',
+        bottom: '5%',
+        start: 0,
+        end: 100
+      }
+    ],
+    series: [
+      {
+        name: 'K线',
+        type: 'candlestick',
+        data: data.map(item => [item[0], item[1], item[3], item[2]]), // 开盘、收盘、最高、最低
+        markPoint: {
+          symbol: 'arrow',
+          symbolSize: 50,
+          data: [...buySignals, ...sellSignals],
+          clipByCoordinateSystem: false,
+          silent: false,
+          animation: false,
+          avoidLabelOverlap: true,
+          zlevel: 10,
+          emphasis: {
+            disabled: false
+          },
+          label: {
+            fontSize: 14,
+            fontWeight: 'bold',
+            padding: [5, 10],
+            borderRadius: 4,
+            show: true,
+            formatter: function(param: any) {
+              // 确保卖出信号的标签正确显示
+              if(param.data && param.data.name === '卖出点') {
+                return `卖出\n${param.data.value.toFixed(2)}元`;
+              } else if(param.data && param.data.name === '买入点') {
+                return `买入\n${param.data.value.toFixed(2)}元`;
+              }
+              return param.name;
+            }
+          },
+          itemStyle: {
+            borderWidth: 2,
+            borderColor: '#fff',
+            color: function(param: any) {
+              // 确保卖出信号为绿色，买入信号为红色
+              return param.data.name === '卖出点' ? '#00FF00' : '#FF0000';
+            }
+          }
+        },
+        itemStyle: {
+          color: '#ec0000',
+          color0: '#00da3c',
+          borderColor: '#8A0000',
+          borderColor0: '#008F28'
+        }
+      }
+    ]
+  }
+  
+  // 设置图表选项
+  chart.setOption(option, true)
+}
+
+// 处理窗口大小变化
+const handleResize = () => {
+  chart?.resize()
+}
+
+// 监听属性变化
+watch(
+  [() => props.klineData, () => props.tradeSignals],
+  () => {
+    nextTick(() => {
+      updateChart()
+    })
+  },
+  { deep: true, immediate: true }
+)
+
+// 专门监听交易信号变化
+watch(
+  () => props.tradeSignals,
+  () => {
+    nextTick(() => {
+      updateChart()
+    })
+  },
+  { deep: true, immediate: true }
+)
+
+// 组件挂载和卸载
+onMounted(() => {
+  nextTick(() => {
+    initChart()
+  })
+})
+
+onUnmounted(() => {
+  if (chart) {
+    chart.dispose()
+    chart = null
+  }
+  window.removeEventListener('resize', handleResize)
+})
+</script>
+
+<style scoped>
+.stock-kline-chart-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.chart-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.chart-header h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.chart-container {
+  width: 100%;
+  height: v-bind('props.height');
+}
+</style>

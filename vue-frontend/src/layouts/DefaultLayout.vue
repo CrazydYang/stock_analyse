@@ -185,7 +185,12 @@ const menuItems = computed(() => {
           path: '/industries',
           title: '行业分析',
           icon: 'Document'
-        }
+        },
+        {
+          path: '/stock-kline',
+          title: '股票K线图分析',
+          icon: 'TrendCharts'
+        },
       ]
     },
     {

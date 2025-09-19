@@ -44,6 +44,12 @@ const router = createRouter({
           name: 'stock-viewer',
           component: () => import('../views/analysis/StockPickerView.vue'),
           meta: { title: '股票分析' }
+        },
+        {
+          path: '/stock-kline',
+          name: 'stock-kline',
+          component: () => import('../views/indival_stock_data/StockKLineView.vue'),
+          meta: { title: '股票K线图分析' }
         }
       ]
     },
@@ -146,12 +152,12 @@ const router = createRouter({
       component: () => import('../views/PortfolioView.vue'),
       meta: { title: '投资组合' }
     },
-    {
-      path: '/settings',
+    {      path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
       meta: { title: '系统设置', requiresAdmin: true }
-    }
+    },
+
   ],
 })
 
