@@ -188,6 +188,31 @@ const router = createRouter({
       component: () => import('../views/SettingsView.vue'),
       meta: { title: '系统设置', requiresAdmin: true }
     },
+    {
+      path: '/stock-data',
+      name: 'stock-data',
+      meta: { title: '个股数据' },
+      children: [
+        {
+          path: '/stock-list',
+          name: 'stock-list',
+          component: () => import('@/views/indival_stock_data/StockListView.vue'),
+          meta: { title: '股票列表' }
+        },
+        {
+          path: '/stock-realtime/:code?',
+          name: 'stock-realtime',
+          component: () => import('@/views/indival_stock_data/StockRealtimeView.vue'),
+          meta: { title: '股票实时行情' }
+        },
+        {
+          path: '/stock-history/:code?',
+          name: 'stock-history',
+          component: () => import('@/views/indival_stock_data/StockHistoryView.vue'),
+          meta: { title: '股票历史行情' }
+        }
+      ]
+    },
 
   ],
 })

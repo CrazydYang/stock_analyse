@@ -120,7 +120,11 @@ import {
   Setting,
   Document,
   User,
-  MagicStick
+  MagicStick,
+  DataLine,
+  List,
+  Timer,
+  Calendar
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -172,79 +176,91 @@ const menuItems = computed(() => {
       icon: 'HomeFilled'
     },
     {
-      path: '/stock-picker',
-      title: '智能选股',
-      icon: 'MagicStick',
-      children: [
-        {
-          path: '/stock-viewer',
-          title: '股票筛选',
-          icon: 'DataAnalysis'
-        },
-        {
-          path: '/industries',
-          title: '行业分析',
-          icon: 'Document'
-        },
-        {
-          path: '/stock-kline',
-          title: '股票K线图分析',
-          icon: 'TrendCharts'
-        },
-      ]
-    },
-    {
-      path: '/analysis',
-      title: '股票分析',
-      icon: 'TrendCharts',
+      path: '/market-fundamentals',
+      title: '股市基本面',
+      icon: 'DataAnalysis',
       children: [
         {
           path: '/analysis/market',
           title: '大盘分析',
           icon: 'TrendCharts'
         },
-      {
-        path: '/analysis/congestion',
-        title: '行业拥挤度',
-        icon: 'TrendCharts'
+        {
+          path: '/analysis/fundamental',
+          title: '基本面分析',
+          icon: 'Document'
+        },
+        {
+          path: '/analysis/news-list',
+          title: 'CCTV新闻',
+          icon: 'Document'
+        }
+        ]
       },
       {
-        path: '/analysis/technical',
-        title: '技术分析',
-        icon: 'DataAnalysis'
+        path: '/fund-etf',
+        title: '基金ETF',
+        icon: 'TrendCharts',
+        children: [
+          {
+            path: '/fund-etf/undeveloped',
+            title: '暂未开发',
+            icon: 'Document'
+          }
+        ]
       },
       {
-        path: '/analysis/fundamental',
-        title: '基本面分析',
-        icon: 'Document'
-      },
-      {
-        path: '/analysis/trend',
-        title: '趋势分析',
-        icon: 'TrendCharts'
-      },
-      {
-        path: '/analysis/news-list',
-        title: 'CCTV新闻',
-        icon: 'Document'
-      }
-    ]
-  },
-  {
-    path: '/strategy',
-    title: '策略分析',
-    icon: 'DataAnalysis',
-    children: [
-      {
-        path: '/strategy/index-rps',
-        title: '指数RPS强度排名',
-        icon: 'DataAnalysis'
-      },
-      // {
-      //   path: '/strategy/historical-rps',
-      //   title: '历史RPS数据分析',
-      //   icon: 'DataAnalysis'
-      // }
+        path: '/stock-picker',
+        title: '智能选股',
+        icon: 'MagicStick',
+        children: [
+          {
+            path: '/stock-viewer',
+            title: '股票筛选',
+            icon: 'DataAnalysis'
+          },
+          {
+            path: '/stock-kline',
+            title: '股票K线图分析',
+            icon: 'TrendCharts'
+          },
+          {
+          path: '/stock-list',
+          title: '股票列表',
+          icon: 'List'
+        },
+        {
+          path: '/stock-realtime',
+          title: '实时行情',
+          icon: 'Timer'
+        },
+        {
+          path: '/stock-history',
+          title: '历史行情',
+          icon: 'Calendar'
+        },
+      ]
+    },
+    {
+      path: '/analysis',
+      title: '行业分析',
+      icon: 'TrendCharts',
+      children: [
+        {
+          path: '/industries',
+          title: '行业分析',
+          icon: 'Document'
+        },
+        {
+          path: '/analysis/congestion',
+          title: '行业拥挤度',
+          icon: 'TrendCharts'
+        },
+        {
+          path: '/strategy/index-rps',
+          title: '指数RPS强度排名',
+          icon: 'DataAnalysis'
+        },
     ]
   },
   {
