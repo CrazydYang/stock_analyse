@@ -94,7 +94,7 @@ const goToCreateBacktest = () => {
 // 跳转到创建回测页面并预选策略
 const goToCreateBacktestWithStrategy = (strategyName: string) => {
   router.push({
-    path: '/quant/backtest-strategy',
+    path: '/backtest-strategy',
     query: { strategy: strategyName }
   })
 }
