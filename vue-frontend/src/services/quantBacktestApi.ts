@@ -34,7 +34,42 @@ export interface BacktestCreateParams {
 // 回测任务信息
 export interface BacktestTask {
   task_id: string
+  strategy_name: string
+  stock_code: string
+  stock_name?: string
+  start_date: string
+  end_date: string
+  initial_cash: number
+  commission?: number
   status: 'created' | 'running' | 'completed' | 'failed'
+  created_at: string
+  updated_at?: string
+  completed_at?: string
+  result_summary?: {
+    total_return: number
+    annual_return: number
+    sharpe_ratio: number | null
+    max_drawdown: number | null
+    total_trades: number
+    win_rate: number | null
+  }
+}
+
+// 回测任务列表查询参数
+export interface BacktestTasksParams {
+  current_page?: number
+  page_size?: number
+  strategy_name?: string
+  symbol?: string
+  status?: string
+  start_date?: string
+  end_date?: string
+}
+
+// 回测任务列表响应
+export interface BacktestTasksResponse {
+    tasks: BacktestTask[]
+    total: number
 }
 
 // 回测结果
@@ -130,6 +165,16 @@ export const runBacktestTask = async (taskId: string): Promise<BacktestTask> => 
  */
 export const getBacktestStatus = async (taskId: string): Promise<BacktestTask> => {
   const response = await axios.get(`/django/api/quant/backtest/${taskId}/status/`)
+  return response.data
+}
+
+/**
+ * 获取回测任务列表
+ * @param params 查询参数
+ * @returns Promise<BacktestTasksResponse> 回测任务列表
+ */
+export const getBacktestTasks = async (params: BacktestTasksParams = {}): Promise<BacktestTasksResponse> => {
+  const response = await axios.get('/django/api/quant/backtest/history/', { params })
   return response.data
 }
 

@@ -60,9 +60,27 @@ const router = createRouter({
       children: [
         {
           path: '/backtest',
-          name: 'backtest',
-          component: () => import('../views/quant/QuantitativeBacktestView.vue'),
+          name: 'QuantitativeBacktest',
+          component: () => import('@/views/quant/QuantitativeBacktestView.vue'),
           meta: { title: '回测分析' }
+        },
+        {
+          path: '/backtest-strategy',
+          name: 'BacktestStrategy',
+          component: () => import('@/views/quant/BacktestStrategyView.vue'),
+          meta: { title: '创建回测策略' }
+        },
+        {
+          path: '/backtest-history',
+          name: 'BacktestHistory',
+          component: () => import('@/views/quant/BacktestHistoryView.vue'),
+          meta: { title: '回测历史' }
+        },
+        {
+          path: '/strategy-list',
+          name: 'StrategyList',
+          component: () => import('@/views/quant/StrategyListView.vue'),
+          meta: { title: '回测策略列表' }
         },
       ]
     },

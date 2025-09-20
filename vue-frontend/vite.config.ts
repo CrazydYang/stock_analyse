@@ -20,6 +20,7 @@ export default defineConfig({
     proxy: {
       '/django': {
         target: 'http://47.120.53.64',
+        // target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       }
     }

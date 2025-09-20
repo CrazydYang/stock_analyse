@@ -1,0 +1,456 @@
+<template>
+  <div class="backtest-strategy-view">
+    <div class="page-header">
+      <h1>创建回测策略</h1>
+      <p>选择策略并配置参数，创建回测任务</p>
+    </div>
+    
+    <!-- 策略选择和配置 -->
+    <div class="strategy-config-panel">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>策略配置</span>
+          </div>
+        </template>
+        
+        <el-form :model="strategyForm" label-width="120px" class="strategy-form">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="选择策略" required>
+                <el-select
+                  v-model="strategyForm.strategyName"
+                  placeholder="请选择策略"
+                  class="full-width"
+                  @change="handleStrategySelect"
+                >
+                  <el-option
+                    v-for="item in strategyList"
+                    :key="item.name"
+                    :label="item.description"
+                    :value="item.name"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            
+            <el-col :span="12">
+              <el-form-item label="股票代码" required>
+                <el-select
+                  v-model="strategyForm.symbol"
+                  placeholder="请选择股票"
+                  class="full-width"
+                  filterable
+                >
+                  <el-option
+                    v-for="item in stockList"
+                    :key="item.code"
+                    :label="`${item.code} ${item.name}`"
+                    :value="item.code"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="开始日期" required>
+                <el-date-picker
+                  v-model="strategyForm.startDate"
+                  type="date"
+                  placeholder="选择开始日期"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  class="full-width"
+                />
+              </el-form-item>
+            </el-col>
+            
+            <el-col :span="8">
+              <el-form-item label="结束日期" required>
+                <el-date-picker
+                  v-model="strategyForm.endDate"
+                  type="date"
+                  placeholder="选择结束日期"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  class="full-width"
+                />
+              </el-form-item>
+            </el-col>
+            
+            <el-col :span="8">
+              <el-form-item label="初始资金">
+                <el-input-number
+                  v-model="strategyForm.initialCash"
+                  :min="10000"
+                  :step="10000"
+                  :precision="0"
+                  class="full-width"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <!-- 策略参数配置 -->
+          <div v-if="selectedStrategy && selectedStrategy.params" class="strategy-params">
+            <h3>策略参数</h3>
+            <el-row :gutter="20">
+              <el-col :span="8" v-for="(param, key) in selectedStrategy.params" :key="key">
+                <el-form-item :label="param.description">
+                  <el-input-number
+                    v-if="param.type === 'int'"
+                    v-model="strategyForm.strategyParams[key]"
+                    :min="1"
+                    :precision="0"
+                    class="full-width"
+                  />
+                  <el-input
+                    v-else-if="param.type === 'string'"
+                    v-model="strategyForm.strategyParams[key]"
+                    class="full-width"
+                  />
+                  <el-input-number
+                    v-else-if="param.type === 'float'"
+                    v-model="strategyForm.strategyParams[key]"
+                    :precision="2"
+                    class="full-width"
+                  />
+                  <el-switch
+                    v-else-if="param.type === 'boolean'"
+                    v-model="strategyForm.strategyParams[key]"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+          
+          <el-form-item>
+            <el-button type="primary" @click="createBacktest" :loading="loading" :disabled="!canCreateBacktest">
+              创建回测任务
+            </el-button>
+            <el-button @click="resetForm">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </div>
+    
+    <!-- 策略说明 -->
+    <div class="strategy-description" v-if="selectedStrategy">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>策略说明</span>
+          </div>
+        </template>
+        
+        <div class="description-content">
+          <h3>{{ selectedStrategy.description }}</h3>
+          <div v-if="selectedStrategy.params" class="params-info">
+            <h4>参数说明：</h4>
+            <ul>
+              <li v-for="(param, key) in selectedStrategy.params" :key="key">
+                <strong>{{ param.description }}</strong>: {{ param.type }}类型，默认值: {{ param.default }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </el-card>
+    </div>
+    
+
+  </div>
+</template>
+
+<script setup lang="ts">
+/**
+ * 回测策略页面
+ * 功能：
+ * 1. 策略选择和参数配置
+ * 2. 创建回测任务
+ * 3. 显示最近创建的任务
+ */
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  getStrategies, 
+  createBacktestTask as createBacktestTaskApi, 
+  runBacktestTask as runBacktestTaskApi,
+  type Strategy
+} from '@/services/quantBacktestApi'
+import { fetchStockList, type StockInfoItem } from '@/services/stockHistoryApi'
+
+const router = useRouter()
+const route = useRoute()
+
+// 表单数据
+const strategyForm = reactive({
+  strategyName: '',
+  symbol: '',
+  startDate: '',
+  endDate: '',
+  initialCash: 100000,
+  strategyParams: {} as Record<string, any>
+})
+
+// 数据状态
+const strategyList = ref<Strategy[]>([])
+const stockList = ref<StockInfoItem[]>([])
+const selectedStrategy = ref<Strategy | null>(null)
+const loading = ref(false)
+
+// 计算属性：是否可以创建回测任务
+const canCreateBacktest = computed(() => {
+  return !!strategyForm.strategyName && 
+         !!strategyForm.symbol && 
+         !!strategyForm.startDate && 
+         !!strategyForm.endDate
+})
+
+// 选择策略
+const handleStrategySelect = (strategyName: string) => {
+  const strategy = strategyList.value.find((item: Strategy) => item.name === strategyName)
+  
+  if (strategy) {
+    selectedStrategy.value = strategy
+    // 初始化策略参数
+    strategyForm.strategyParams = {}
+    if (strategy.params) {
+      Object.keys(strategy.params).forEach(key => {
+        strategyForm.strategyParams[key] = strategy.params![key].default
+      })
+    }
+  }
+}
+
+// 创建回测任务
+const createBacktest = async () => {
+  if (!canCreateBacktest.value) {
+    ElMessage.warning('请填写完整的回测配置')
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    const params = {
+      strategy_name: strategyForm.strategyName,
+      stock_code: strategyForm.symbol,
+      start_date: strategyForm.startDate,
+      end_date: strategyForm.endDate,
+      initial_cash: strategyForm.initialCash,
+      strategy_params: strategyForm.strategyParams
+    }
+    
+    const task = await createBacktestTaskApi(params)
+    
+    ElMessage.success('回测任务创建成功')
+    
+
+    
+    // 询问是否立即运行
+    ElMessageBox.confirm('回测任务已创建，是否立即运行？', '提示', {
+      confirmButtonText: '立即运行',
+      cancelButtonText: '稍后运行',
+      type: 'info'
+    }).then(async () => {
+      await runTask(task.task_id)
+    }).catch(() => {
+      // 用户选择稍后运行
+    })
+    
+  } catch (error) {
+    console.error('创建回测任务失败:', error)
+    ElMessage.error('创建回测任务失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 运行任务
+const runTask = async (taskId: string) => {
+  try {
+    await runBacktestTaskApi(taskId)
+    ElMessage.success('回测任务已启动')
+    
+  } catch (error) {
+    console.error('运行回测任务失败:', error)
+    ElMessage.error('运行回测任务失败')
+  }
+}
+
+// 查看结果
+const viewResult = (taskId: string) => {
+  router.push(`/quant/backtest-result/${taskId}`)
+}
+
+// 重置表单
+const resetForm = () => {
+  strategyForm.strategyName = ''
+  strategyForm.symbol = ''
+  strategyForm.startDate = ''
+  strategyForm.endDate = ''
+  strategyForm.initialCash = 100000
+  strategyForm.strategyParams = {}
+  selectedStrategy.value = null
+}
+
+// 加载策略列表
+const loadStrategyList = async () => {
+  try {
+    const strategies = await getStrategies()
+    strategyList.value = strategies
+  } catch (error) {
+    console.error('加载策略列表失败:', error)
+    ElMessage.error('加载策略列表失败')
+  }
+}
+
+// 加载股票列表
+const loadStockList = async () => {
+  try {
+    const { data } = await fetchStockList(1, 100)
+    stockList.value = data
+  } catch (error) {
+    console.error('加载股票列表失败:', error)
+    ElMessage.error('加载股票列表失败')
+  }
+}
+
+
+
+// 获取状态标签类型
+const getStatusTagType = (status: string): string => {
+  switch (status) {
+    case 'created':
+      return 'info'
+    case 'running':
+      return 'warning'
+    case 'completed':
+      return 'success'
+    case 'failed':
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+// 获取状态文本
+const getStatusText = (status: string): string => {
+  switch (status) {
+    case 'created':
+      return '已创建'
+    case 'running':
+      return '运行中'
+    case 'completed':
+      return '已完成'
+    case 'failed':
+      return '执行失败'
+    default:
+      return '未知状态'
+  }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateTime: string): string => {
+  return new Date(dateTime).toLocaleString('zh-CN')
+}
+
+// 页面初始化
+onMounted(async () => {
+  await Promise.all([
+    loadStrategyList(),
+    loadStockList()
+  ])
+  
+  // 设置默认日期范围（最近一年）
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setFullYear(endDate.getFullYear() - 1)
+  
+  strategyForm.endDate = endDate.toISOString().split('T')[0]
+  strategyForm.startDate = startDate.toISOString().split('T')[0]
+  
+  // 检查URL参数中是否有预选策略
+  const strategyParam = route.query.strategy as string
+  if (strategyParam) {
+    strategyForm.strategyName = strategyParam
+    handleStrategySelect(strategyParam)
+  }
+})
+</script>
+
+<style scoped>
+.backtest-strategy-view {
+  padding: 20px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px 0;
+  color: #303133;
+}
+
+.page-header p {
+  margin: 0;
+  color: #606266;
+}
+
+.strategy-config-panel {
+  margin-bottom: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.strategy-form .full-width {
+  width: 100%;
+}
+
+.strategy-params {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+.strategy-params h3 {
+  margin: 0 0 16px 0;
+  color: #303133;
+}
+
+.strategy-description {
+  margin-bottom: 20px;
+}
+
+.description-content h3 {
+  margin: 0 0 16px 0;
+  color: #303133;
+}
+
+.description-content h4 {
+  margin: 16px 0 8px 0;
+  color: #606266;
+}
+
+.params-info ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.params-info li {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.recent-tasks {
+  margin-bottom: 20px;
+}
+</style>

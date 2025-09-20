@@ -257,6 +257,21 @@ const menuItems = computed(() => {
         title: '回测分析',
         icon: 'DataAnalysis'
       },
+      {
+        path: '/strategy-list',
+        title: '回测策略列表',
+        icon: 'Document'
+      },
+      {
+        path: '/backtest-strategy',
+        title: '创建回测策略',
+        icon: 'Setting'
+      },
+      {
+        path: '/backtest-history',
+        title: '回测历史',
+        icon: 'Clock'
+      }
     ]
   },
   {
