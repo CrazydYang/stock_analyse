@@ -248,6 +248,18 @@ const menuItems = computed(() => {
     ]
   },
   {
+    path: '/quant',
+    title: '量化分析',
+    icon: 'DataAnalysis',
+    children: [
+      {
+        path: '/backtest',
+        title: '回测分析',
+        icon: 'DataAnalysis'
+      },
+    ]
+  },
+  {
         path: '/forum/posts',
         title: '论坛讨论区',
         icon: 'Document'

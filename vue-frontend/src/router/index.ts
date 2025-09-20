@@ -54,6 +54,19 @@ const router = createRouter({
       ]
     },
     {
+      path: '/quant',
+      name: 'quant',
+      meta: { title: '量化分析' },
+      children: [
+        {
+          path: '/backtest',
+          name: 'backtest',
+          component: () => import('../views/quant/QuantitativeBacktestView.vue'),
+          meta: { title: '回测分析' }
+        },
+      ]
+    },
+    {
       path: '/analysis',
       name: 'analysis',
       meta: { title: '股票分析' },
