@@ -128,11 +128,15 @@ interface ApiResponse<T> {
 
 /**
  * 获取股票列表
- * @param params 分页参数
+ * @param params 分页和搜索参数
  * @returns Promise<StockListResponse> 股票列表
  */
-export const getStockList = async (params: PageParams = {}): Promise<StockListResponse> => {
-  const { page, page_size } = params
+export interface StockListParams extends PageParams {
+  keyword?: string; // 搜索关键词，可以是股票代码或名称
+}
+
+export const getStockList = async (params: StockListParams = {}): Promise<StockListResponse> => {
+  const { page, page_size, keyword } = params
   const queryParams = new URLSearchParams()
   
   if (page !== undefined) {
@@ -141,6 +145,10 @@ export const getStockList = async (params: PageParams = {}): Promise<StockListRe
   
   if (page_size !== undefined) {
     queryParams.append('page_size', page_size.toString())
+  }
+  
+  if (keyword) {
+    queryParams.append('keyword', keyword)
   }
   
   const queryString = queryParams.toString()

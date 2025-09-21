@@ -96,9 +96,19 @@
  * 
  * 功能：
  * 1. 展示所有股票的基本信息
- * 2. 支持按股票代码、名称搜索
+ * 2. 支持按股票代码、名称进行后端搜索
  * 3. 支持排序和分页
  * 4. 提供跳转到实时行情和历史行情的入口
+ * 
+ * 参数：
+ * - searchKeyword: 搜索关键词，用于后端搜索
+ * - currentPage: 当前页码
+ * - pageSize: 每页显示数量
+ * 
+ * 事件：
+ * - handleSearch: 触发后端搜索
+ * - resetSearch: 重置搜索条件并刷新数据
+ * - fetchStockList: 从后端获取股票列表数据
  */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -130,17 +140,7 @@ const totalStocks = ref(0)
 const filteredStocks = computed(() => {
   let result = stocks.value
 
-  // 关键词搜索
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(
-      stock => 
-        stock.code.toLowerCase().includes(keyword) || 
-        stock.name.toLowerCase().includes(keyword)
-    )
-  }
-
-  // 排序
+  // 排序 (搜索已经在后端实现)
   if (sortField.value) {
     result = [...result].sort((a, b) => {
       const fieldA = a[sortField.value as keyof StockInfo]
@@ -170,7 +170,8 @@ const fetchStockList = async () => {
   try {
     const response = await getStockList({
       page: currentPage.value,
-      page_size: pageSize.value
+      page_size: pageSize.value,
+      keyword: searchKeyword.value // 添加搜索关键词参数
     })
     stocks.value = response.data
     
@@ -189,12 +190,14 @@ const fetchStockList = async () => {
 // 方法：搜索
 const handleSearch = () => {
   currentPage.value = 1
+  fetchStockList() // 调用后端搜索
 }
 
 // 方法：重置搜索
 const resetSearch = () => {
   searchKeyword.value = ''
   currentPage.value = 1
+  fetchStockList() // 重置后调用后端搜索
 }
 
 // 方法：排序变化

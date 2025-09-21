@@ -19,8 +19,8 @@ export default defineConfig({
     host: true, // 监听所有地址，包括局域网和公网地址
     proxy: {
       '/django': {
-        target: 'http://47.120.53.64',
-        // target: 'http://127.0.0.1:8000',
+        // target: 'http://47.120.53.64',
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true,
       }
     }
