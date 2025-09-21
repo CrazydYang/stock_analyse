@@ -5,7 +5,8 @@ import {
   register as apiRegister, 
   getCurrentUser, 
   logoutApi, 
-  clearAuthStorage 
+  clearAuthStorage,
+  resetPasswordApi
 } from './userApi';
 
 // 创建响应式状态
@@ -124,6 +125,21 @@ export async function logout() {
 // 检查是否已认证
 export function isAuthenticated() {
   return !!localStorage.getItem('token');
+}
+
+// 重置密码函数
+export async function resetPassword(email: string, newPassword: string) {
+  isLoading.value = true;
+  error.value = null;
+  
+  try {
+    await resetPasswordApi({ email, new_password: newPassword });
+  } catch (e: any) {
+    error.value = e.response?.data?.message || e.message || '重置密码失败，请稍后再试';
+    throw e;
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 // 导出状态

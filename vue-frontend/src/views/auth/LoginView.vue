@@ -123,7 +123,8 @@ async function handleLogin() {
 
 // 忘记密码处理
 function forgotPassword() {
-  ElMessage.info('忘记密码功能暂未实现，请联系管理员');
+  // 跳转到重置密码页面
+  router.push('/reset-password');
 }
 </script>
 

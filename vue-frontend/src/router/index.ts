@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { title: '注册', requiresAuth: false }
     },
     {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/auth/ResetPasswordView.vue'),
+      meta: { title: '重置密码', requiresAuth: false }
+    },
+    {
       path: '/',
       name: 'home',
       component: () => import('../views/HomeView.vue'),

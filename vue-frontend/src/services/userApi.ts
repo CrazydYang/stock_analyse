@@ -11,6 +11,12 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
+// 重置密码请求接口
+export interface ResetPasswordRequest {
+  email: string;
+  new_password: string;
+}
+
 // 用户接口定义
 export interface User {
   id: number;
@@ -158,9 +164,15 @@ export function isAuthenticated(): boolean {
 /**
  * 本地登出（清除本地存储）
  */
-export function clearAuthStorage(): void {
+export function clearAuthStorage() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+}
+
+// 重置密码API
+export async function resetPasswordApi(data: ResetPasswordRequest): Promise<ApiResponse> {
+  const response = await axios.post<ApiResponse>(`${API_BASE_URL}/reset-password/`, data);
+  return response.data;
 }
 
 /**
