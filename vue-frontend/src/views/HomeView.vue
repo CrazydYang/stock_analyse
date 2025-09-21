@@ -15,28 +15,28 @@
                 <el-card class="feature-card" @click="goToStockPicker">
                   <el-icon size="48" color="#722ed1"><MagicStick /></el-icon>
                   <h3>智能选股</h3>
-                  <p>AI驱动的智能股票筛选和推荐</p>
+                  <p>基于市场数据的智能股票筛选</p>
                 </el-card>
               </el-col>
               <el-col :span="8">
                 <el-card class="feature-card" @click="goToAnalysis">
                   <el-icon size="48" color="#409EFF"><TrendCharts /></el-icon>
                   <h3>技术分析</h3>
-                  <p>专业的技术指标和图表分析</p>
+                  <p>K线图表与技术指标分析</p>
                 </el-card>
               </el-col>
               <el-col :span="8">
                 <el-card class="feature-card" @click="goToFundamental">
                   <el-icon size="48" color="#67C23A"><Document /></el-icon>
                   <h3>基本面分析</h3>
-                  <p>深度的财务数据和分析</p>
+                  <p>财务报表与估值分析</p>
                 </el-card>
               </el-col>
               <el-col :span="8">
-                <el-card class="feature-card" @click="goToPortfolio">
+                <el-card class="feature-card" @click="goToMarketOverview">
                   <el-icon size="48" color="#E6A23C"><DataAnalysis /></el-icon>
-                  <h3>投资组合</h3>
-                  <p>智能的投资组合管理</p>
+                  <h3>市场概况</h3>
+                  <p>大盘数据与市场趋势分析</p>
                 </el-card>
               </el-col>
             </el-row>
@@ -47,27 +47,43 @@
       <el-col :span="8">
         <el-card class="quick-stats">
           <template #header>
-            <span>今日行情</span>
+            <div class="card-header">
+              <span>今日行情</span>
+              <el-tag v-if="marketDate" size="small" type="info">{{ formatDate(marketDate) }}</el-tag>
+            </div>
           </template>
-          <div class="stats-content">
-            <div class="stat-item">
-              <span class="stat-label">上证指数</span>
-              <span class="stat-value positive">+1.25%</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">深证成指</span>
-              <span class="stat-value positive">+0.89%</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">创业板指</span>
-              <span class="stat-value negative">-0.45%</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">沪深300</span>
-              <span class="stat-value positive">+0.78%</span>
+          <div v-if="loading" class="loading-container">
+            <el-skeleton :rows="4" animated />
+          </div>
+          <div v-else-if="error" class="error-message">
+            <el-alert type="error" :title="error" :closable="false" />
+          </div>
+          <div v-else class="stats-content">
+            <div v-for="index in marketIndices" :key="index.name" class="stat-item">
+              <span class="stat-label">{{ index.name }}</span>
+              <div class="stat-value-container">
+                <span class="stat-value-number">{{ index.value.toFixed(2) }}</span>
+                <span :class="['stat-value', index.changePercent >= 0 ? 'positive' : 'negative']">
+                  {{ index.changePercent >= 0 ? '+' : '' }}{{ index.changePercent.toFixed(2) }}%
+                </span>
+              </div>
             </div>
           </div>
         </el-card>
+        
+        <!-- <el-card class="market-overview mt-20" v-if="!loading && !error && marketOverview.length > 0">
+          <template #header>
+            <span>市场概况</span>
+          </template>
+          <div class="market-data">
+            <div v-for="item in marketOverview" :key="item.index_name" class="market-item">
+              <span class="market-label">{{ item.index_name }}</span>
+              <span :class="['market-value', isIndexItem(item.index_name) ? (item.volume >= 0 ? 'positive' : 'negative') : '']">
+                {{ formatMarketValue(item.volume) }}
+              </span>
+            </div>
+          </div>
+        </el-card> -->
         
         <el-card class="recent-news mt-20">
           <template #header>
@@ -87,12 +103,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { TrendCharts, Document, DataAnalysis, MagicStick } from '@element-plus/icons-vue'
+import { getMarketIndices, getMarketDailyOverview, type MarketIndexChange, type MarketIndexData } from '@/services/marketService'
 
 const router = useRouter()
 
+// 市场数据
+const marketIndices = ref<MarketIndexChange[]>([])
+const marketOverview = ref<MarketIndexData[]>([])
+const marketDate = ref<string>('')
+const loading = ref(true)
+const error = ref<string | null>(null)
+
+// 获取市场数据
+const fetchMarketData = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    // 获取市场指数数据
+    const indicesData = await getMarketIndices()
+    marketIndices.value = indicesData
+    
+    // 获取市场每日概况
+    const marketData = await getMarketDailyOverview()
+    
+    if (marketData.date) {
+      marketDate.value = marketData.date
+      marketOverview.value = [
+        marketData.shanghai,
+        marketData.shenzhen,
+        marketData.hs300,
+        marketData.sz50
+      ]
+      
+    }
+
+  } catch (err) {
+    console.error('获取市场数据出错:', err)
+    error.value = '获取市场数据出错，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+// 格式化日期 YYYYMMDD -> YYYY-MM-DD
+const formatDate = (dateStr: string): string => {
+  if (!dateStr || dateStr.length !== 8) return dateStr
+  return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`
+}
+
+// 格式化市场数据值
+const formatMarketValue = (value: number): string => {
+  if (value === null || value === undefined) return '-'
+  
+  // 根据数值大小选择合适的单位
+  if (value >= 10000000000000) {
+    return `${(value / 100000000000).toFixed(2)}万亿`
+  } else if (value >= 1) {
+    return `${(value / 100000000).toFixed(2)}亿`
+  } else {
+    return `${(value * 100).toFixed(2)}%`
+  }
+}
+
+// 判断是否为指数项目
+const isIndexItem = (name: string): boolean => {
+  const indexNames = ['上证指数', '深证成指', '沪深300', '上证50']
+  return indexNames.includes(name)
+}
+
+// 新闻数据
 const recentNews = ref([
   {
     id: 1,
@@ -114,6 +197,7 @@ const recentNews = ref([
   }
 ])
 
+// 页面导航
 const goToStockPicker = () => {
   router.push('/stock-picker')
 }
@@ -126,9 +210,14 @@ const goToFundamental = () => {
   router.push('/analysis/fundamental')
 }
 
-const goToPortfolio = () => {
-  router.push('/portfolio')
+const goToMarketOverview = () => {
+  router.push('/market-overview')
 }
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchMarketData()
+})
 </script>
 
 <style scoped>
@@ -179,15 +268,34 @@ const goToPortfolio = () => {
   margin-bottom: 20px;
 }
 
-.stats-content {
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-container {
   padding: 20px 0;
+}
+
+.error-message {
+  padding: 10px 0;
+}
+
+.stats-content {
+  padding: 10px 0;
 }
 
 .stat-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid #eee;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
 }
 
 .stat-label {
@@ -195,8 +303,21 @@ const goToPortfolio = () => {
   color: #606266;
 }
 
+.stat-value-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stat-value-number {
+  font-weight: bold;
+  color: #303133;
+  font-size: 16px;
+}
+
 .stat-value {
   font-weight: bold;
+  font-size: 14px;
 }
 
 .positive {
@@ -205,6 +326,34 @@ const goToPortfolio = () => {
 
 .negative {
   color: #F56C6C;
+}
+
+.market-overview {
+  margin-bottom: 20px;
+}
+
+.market-data {
+  padding: 10px 0;
+}
+
+.market-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.market-item:last-child {
+  border-bottom: none;
+}
+
+.market-label {
+  color: #606266;
+}
+
+.market-value {
+  font-weight: bold;
+  color: #303133;
 }
 
 .recent-news {
