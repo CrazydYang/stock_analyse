@@ -69,6 +69,10 @@
               {{ item.title }}
             </el-breadcrumb-item>
           </el-breadcrumb>
+          <!-- 风险提示信息 -->
+          <div class="risk-warning">
+            <strong>注意：所有数据仅作参考，不作为任何投资建议，风险自担</strong>
+          </div>
         </div>
         <div class="header-right">
           <!-- 未登录状态 -->
@@ -402,6 +406,13 @@ const toggleSidebar = () => {
 .auth-buttons {
   display: flex;
   gap: 10px;
+}
+
+.risk-warning {
+  margin-left: 20px;
+  font-weight: bold;
+  color: #ff0000;
+  font-size: 14px;
 }
 
 .main-content {
