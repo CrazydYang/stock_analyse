@@ -299,6 +299,7 @@ const formatCurrency = (value: number): string => {
 
 // 格式化百分比
 const formatPercent = (value: number): string => {
+  if (value === undefined || value === null) return '-'
   return `${value.toFixed(2)}%`
 }
 
