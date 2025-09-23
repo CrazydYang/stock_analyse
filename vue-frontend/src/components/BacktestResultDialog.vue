@@ -299,7 +299,7 @@ const formatCurrency = (value: number): string => {
 
 // 格式化百分比
 const formatPercent = (value: number): string => {
-  return `${(value * 100).toFixed(2)}%`
+  return `${value.toFixed(2)}%`
 }
 
 // 格式化日期时间

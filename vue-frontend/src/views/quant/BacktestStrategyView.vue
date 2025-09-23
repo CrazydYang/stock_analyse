@@ -38,15 +38,19 @@
               <el-form-item label="股票代码" required>
                 <el-select
                   v-model="strategyForm.symbol"
-                  placeholder="请选择股票"
-                  class="full-width"
+                  placeholder="请选择股票代码"
                   filterable
+                  remote
+                  :remote-method="handleStockInputChange"
+                  :loading="stockSearchLoading"
+                  clearable
+                  style="width: 100%"
                 >
                   <el-option
-                    v-for="item in stockList"
-                    :key="item.code"
-                    :label="`${item.code} ${item.name}`"
-                    :value="item.code"
+                    v-for="stock in stockList"
+                    :key="stock.code"
+                    :label="`${stock.code} - ${stock.name}`"
+                    :value="stock.code"
                   />
                 </el-select>
               </el-form-item>
@@ -181,6 +185,8 @@ import {
   type Strategy
 } from '@/services/quantBacktestApi'
 import { fetchStockList, type StockInfoItem } from '@/services/stockHistoryApi'
+import { getStockList } from '@/services/individualStockApi'
+import type { StockListParams, StockInfo } from '@/services/individualStockApi'
 
 const router = useRouter()
 const route = useRoute()
@@ -197,9 +203,13 @@ const strategyForm = reactive({
 
 // 数据状态
 const strategyList = ref<Strategy[]>([])
-const stockList = ref<StockInfoItem[]>([])
+const stockList = ref<StockInfo[]>([])
 const selectedStrategy = ref<Strategy | null>(null)
 const loading = ref(false)
+
+// 股票搜索相关状态
+const stockSearchKeyword = ref('')
+const stockSearchLoading = ref(false)
 
 // 计算属性：是否可以创建回测任务
 const canCreateBacktest = computed(() => {
@@ -208,6 +218,57 @@ const canCreateBacktest = computed(() => {
          !!strategyForm.startDate && 
          !!strategyForm.endDate
 })
+
+/**
+ * 搜索股票列表
+ * @param keyword 搜索关键词
+ */
+const searchStockList = async (keyword: string = '') => {
+  try {
+    stockSearchLoading.value = true
+    const params: StockListParams = {
+      page: 1,
+      page_size: 50, // 增加返回数量以提供更多选择
+      keyword: keyword.trim()
+    }
+    
+    const response = await getStockList(params)
+    stockList.value = response.data
+  } catch (error) {
+    console.error('搜索股票列表失败:', error)
+    // 搜索失败时不显示错误消息，避免干扰用户输入体验
+  } finally {
+    stockSearchLoading.value = false
+  }
+}
+
+/**
+ * 防抖函数
+ * @param func 要防抖的函数
+ * @param delay 延迟时间（毫秒）
+ */
+const debounce = (func: Function, delay: number) => {
+  let timeoutId: number
+  return (...args: any[]) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func.apply(null, args), delay)
+  }
+}
+
+// 创建防抖的搜索函数
+const debouncedSearchStockList = debounce(searchStockList, 300)
+
+/**
+ * 处理股票选择器输入变化
+ * @param value 输入值
+ */
+const handleStockInputChange = (value: string) => {
+  stockSearchKeyword.value = value
+  // 当输入长度大于等于1时触发搜索，或者输入为空时显示默认列表
+  if (value.length >= 1 || value.length === 0) {
+    debouncedSearchStockList(value)
+  }
+}
 
 // 选择策略
 const handleStrategySelect = (strategyName: string) => {
@@ -311,8 +372,12 @@ const loadStrategyList = async () => {
 // 加载股票列表
 const loadStockList = async () => {
   try {
-    const { data } = await fetchStockList(1, 100)
-    stockList.value = data
+    const params: StockListParams = {
+      page: 1,
+      page_size: 100
+    }
+    const response = await getStockList(params)
+    stockList.value = response.data
   } catch (error) {
     console.error('加载股票列表失败:', error)
     ElMessage.error('加载股票列表失败')
