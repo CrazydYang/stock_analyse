@@ -38,21 +38,44 @@
         >
           <el-table-column prop="code" label="股票代码" min-width="100" sortable />
           <el-table-column prop="name" label="股票名称" min-width="120" sortable />
-          <el-table-column prop="exchange" label="交易所" min-width="80" />
           <el-table-column prop="industry" label="行业" min-width="120" />
-          <el-table-column prop="market_cap" label="市值" min-width="100" sortable>
+          <el-table-column prop="latest_price" label="最新价" min-width="100" sortable />
+          <el-table-column prop="change_percent" label="涨跌幅" min-width="100" sortable>
             <template #default="scope">
-              {{ formatMarketCap(scope.row.market_cap) }}
+              <span :class="scope.row.change_percent >= 0 ? 'text-success' : 'text-danger'">
+                {{ scope.row.change_percent ? scope.row.change_percent.toFixed(2) + '%' : '-' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="change_amount" label="涨跌额" min-width="100" sortable>
+            <template #default="scope">
+              <span :class="scope.row.change_amount >= 0 ? 'text-success' : 'text-danger'">
+                {{ scope.row.change_amount ? scope.row.change_amount.toFixed(2) : '-' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="volume" label="成交量" min-width="100" sortable>
+            <template #default="scope">
+              {{ formatVolume(scope.row.volume) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="amount" label="成交额" min-width="100" sortable>
+            <template #default="scope">
+              {{ formatMarketCap(scope.row.amount) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="turnover_rate" label="换手率" min-width="80" sortable>
+            <template #default="scope">
+              {{ scope.row.turnover_rate ? scope.row.turnover_rate.toFixed(2) + '%' : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_market_cap" label="总市值" min-width="100" sortable>
+            <template #default="scope">
+              {{ formatMarketCap(scope.row.total_market_cap) }}
             </template>
           </el-table-column>
           <el-table-column prop="pe_ratio" label="市盈率" min-width="80" sortable />
           <el-table-column prop="pb_ratio" label="市净率" min-width="80" sortable />
-          <el-table-column prop="dividend_yield" label="股息率" min-width="80" sortable>
-            <template #default="scope">
-              {{ scope.row.dividend_yield ? scope.row.dividend_yield.toFixed(2) + '%' : '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="listing_date" label="上市日期" min-width="100" sortable />
           <el-table-column label="操作" min-width="180" fixed="right">
             <template #default="scope">
               <el-button 
@@ -244,6 +267,19 @@ const formatMarketCap = (value: number | null | undefined): string => {
   }
 }
 
+// 方法：格式化成交量
+const formatVolume = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '-'
+  
+  if (value >= 100000000) {
+    return (value / 100000000).toFixed(2) + '亿手'
+  } else if (value >= 10000) {
+    return (value / 10000).toFixed(2) + '万手'
+  } else {
+    return value.toString() + '手'
+  }
+}
+
 // 生命周期：组件挂载时获取数据
 onMounted(() => {
   fetchStockList()
@@ -285,6 +321,14 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+}
+
+.text-success {
+  color: #f56c6c; /* 红色表示上涨 */
+}
+
+.text-danger {
+  color: #67c23a; /* 绿色表示下跌 */
 }
 
 /* 响应式设计 */

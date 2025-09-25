@@ -28,6 +28,24 @@ export interface StockInfo {
   circulating_market_cap: number
   created_at: string
   updated_at: string
+  
+  // akshare数据字段
+  latest_price: number
+  change_percent: number
+  change_amount: number
+  volume: number
+  amount: number
+  amplitude: number
+  high: number
+  low: number
+  open_price: number
+  close_price: number
+  volume_ratio: number
+  turnover_rate: number
+  price_change_speed: number
+  change_5min: number
+  change_60d: number
+  change_ytd: number
 }
 
 // 股票实时行情接口

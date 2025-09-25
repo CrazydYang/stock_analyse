@@ -59,73 +59,81 @@
               </div>
             </template>
           </el-table-column>
+        
           
-          <el-table-column prop="count" label="股票数量" width="120" align="center" sortable>
-            <template #default="scope">
-              <el-tag type="info" size="small">{{ scope.row.count }}</el-tag>
-            </template>
-          </el-table-column>
-          
-          <el-table-column label="市场占比" width="120" align="center" sortable>
-            <template #default="scope">
-              <span class="percentage-value">{{ calculatePercentage(scope.row.count) }}%</span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="avgChangePercent" label="行业平均涨跌幅" width="200" align="center" sortable>
+          <el-table-column prop="change_amount" label="涨跌额" width="120" align="center" sortable>
             <template #default="scope">
               <span 
                 class="change-value" 
                 :class="{
-                  'positive': scope.row.avgChangePercent > 0,
-                  'negative': scope.row.avgChangePercent < 0,
-                  'neutral': scope.row.avgChangePercent === 0
+                  'positive': scope.row.change_amount > 0,
+                  'negative': scope.row.change_amount < 0,
+                  'neutral': scope.row.change_amount === 0
                 }"
               >
-                {{ formatChangePercent(scope.row.avgChangePercent) }}
+                {{ scope.row.change_amount ? scope.row.change_amount.toFixed(2) : '0.00' }}
               </span>
             </template>
           </el-table-column>
           
-          <el-table-column prop="avgPeRatio" label="平均PE" width="100" align="center">
-            <template #default="scope">
-              <span class="value-badge">{{ scope.row.avgPeRatio ? scope.row.avgPeRatio.toFixed(2) : 'N/A' }}</span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="avgPbRatio" label="平均PB" width="100" align="center">
-            <template #default="scope">
-              <span class="value-badge">{{ scope.row.avgPbRatio ? scope.row.avgPbRatio.toFixed(2) : 'N/A' }}</span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="avgChange60Day" label="60天涨跌幅" width="120" align="center">
+          <el-table-column prop="change_percent" label="行业平均涨跌幅" width="150" align="center" sortable>
             <template #default="scope">
               <span 
                 class="change-value" 
                 :class="{
-                  'positive': scope.row.avgChange60Day > 0,
-                  'negative': scope.row.avgChange60Day < 0,
-                  'neutral': scope.row.avgChange60Day === 0
+                  'positive': scope.row.change_percent > 0,
+                  'negative': scope.row.change_percent < 0,
+                  'neutral': scope.row.change_percent === 0
                 }"
               >
-                {{ formatChangePercent(scope.row.avgChange60Day) }}
+                {{ formatChangePercent(scope.row.change_percent) }}
               </span>
             </template>
           </el-table-column>
           
-          <el-table-column prop="avgChangeYtd" label="年初至今涨跌幅" width="130" align="center">
+
+
+          
+
+          
+          <el-table-column prop="rise_fall_count" label="上涨/下跌家数" width="120" align="center">
             <template #default="scope">
-              <span 
-                class="change-value" 
-                :class="{
-                  'positive': scope.row.avgChangeYtd > 0,
-                  'negative': scope.row.avgChangeYtd < 0,
-                  'neutral': scope.row.avgChangeYtd === 0
-                }"
-              >
-                {{ formatChangePercent(scope.row.avgChangeYtd) }}
-              </span>
+              <div class="rise-fall-count">
+                <span class="rise-count">{{ scope.row.rise_count || 0 }}</span>
+                <span class="count-separator">/</span>
+                <span class="fall-count">{{ scope.row.fall_count || 0 }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="total_market_value" label="总市值(亿)" width="120" align="center">
+            <template #default="scope">
+              <span class="value-badge">{{ scope.row.total_market_value ? (scope.row.total_market_value / 100000000).toFixed(2) : 'N/A' }}</span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="turnover_rate" label="换手率" width="100" align="center">
+            <template #default="scope">
+              <span class="value-badge">{{ scope.row.turnover_rate ? scope.row.turnover_rate.toFixed(2) + '%' : 'N/A' }}</span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="leading_stock" label="领涨股" width="120" align="center">
+            <template #default="scope">
+              <div v-if="scope.row.leading_stock">
+                <div>{{ scope.row.leading_stock }}</div>
+                <div 
+                  class="change-value" 
+                  :class="{
+                    'positive': scope.row.leading_stock_change_percent > 0,
+                    'negative': scope.row.leading_stock_change_percent < 0,
+                    'neutral': scope.row.leading_stock_change_percent === 0
+                  }"
+                >
+                  {{ formatChangePercent(scope.row.leading_stock_change_percent) }}
+                </div>
+              </div>
+              <span v-else>--</span>
             </template>
           </el-table-column>
           
@@ -171,11 +179,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchIndustriesData, type Industry, type Stock } from '../../services/industryApi'
+import { 
+  fetchIndustriesData, 
+  fetchIndustrySectorStocks, 
+  type Industry, 
+  type Stock 
+} from '../../services/industryApi'
+import { ElMessage } from 'element-plus'
 
 // 响应式数据
 const industries = ref<Industry[]>([])
 const loading = ref(false)
+const loadingDetail = ref(false)
 
 const currentPage = ref(1)
 const pageSize = ref(12)
@@ -229,6 +244,7 @@ const fetchIndustries = async () => {
     industries.value = industriesData
   } catch (error) {
     console.error('获取行业数据错误:', error)
+    ElMessage.error('获取行业数据失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -255,16 +271,51 @@ const handleCurrentChange = (newPage: number) => {
   currentPage.value = newPage
 }
 
-
-
-const showIndustryDetail = (industry: Industry) => {
-  // 跳转到行业详情页面
-  router.push({
-    name: 'industry-detail',
-    params: {
-      industry: encodeURIComponent(industry.industry)
+/**
+ * 查看行业详情
+ * 先获取行业成分股数据，然后跳转到详情页
+ */
+const showIndustryDetail = async (industry: Industry) => {
+  if (!industry.code) {
+    ElMessage.warning('行业代码不存在，无法获取详情')
+    return
+  }
+  
+  loadingDetail.value = true
+  
+  try {
+    // 获取行业成分股数据
+    const { stocks, stats } = await fetchIndustrySectorStocks(industry.code)
+    
+    // 更新行业数据，添加成分股和统计数据
+    const updatedIndustry: Industry = {
+      ...industry,
+      stocks,
+      ...stats
     }
-  })
+    
+    // 跳转到行业详情页面
+    router.push({
+      name: 'industry-detail',
+      params: {
+        industry: encodeURIComponent(updatedIndustry.industry)
+      },
+      state: { industryData: { ...updatedIndustry } } as { industryData: any } // 使用类型断言解决类型不匹配问题
+    })
+  } catch (error) {
+    console.error(`获取行业 ${industry.industry} 详情失败:`, error)
+    ElMessage.error('获取行业详情失败，请稍后重试')
+    
+    // 即使获取详情失败，也可以尝试跳转到详情页（详情页可能会再次请求数据）
+    router.push({
+      name: 'industry-detail',
+      params: {
+        industry: encodeURIComponent(industry.industry)
+      }
+    })
+  } finally {
+    loadingDetail.value = false
+  }
 }
 
 // 生命周期
@@ -744,6 +795,28 @@ onMounted(() => {
 .change-value.neutral {
   color: #718096;
   background-color: #edf2f7;
+}
+
+/* 上涨/下跌家数样式 */
+.rise-fall-count {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.rise-count {
+  color: #f56565;
+  font-weight: 600;
+}
+
+.fall-count {
+  color: #38a169;
+  font-weight: 600;
+}
+
+.count-separator {
+  color: #718096;
 }
 
 /* 股票标签 */

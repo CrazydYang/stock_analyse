@@ -190,27 +190,10 @@ const menuItems = computed(() => {
           icon: 'TrendCharts'
         },
         {
-          path: '/analysis/fundamental',
-          title: '基本面分析',
-          icon: 'Document'
-        },
-        {
           path: '/analysis/news-list',
           title: 'CCTV新闻',
           icon: 'Document'
         }
-        ]
-      },
-      {
-        path: '/fund-etf',
-        title: '基金ETF',
-        icon: 'TrendCharts',
-        children: [
-          {
-            path: '/fund-etf/undeveloped',
-            title: '暂未开发',
-            icon: 'Document'
-          }
         ]
       },
       {
@@ -232,11 +215,6 @@ const menuItems = computed(() => {
           path: '/stock-list',
           title: '股票列表',
           icon: 'List'
-        },
-        {
-          path: '/stock-realtime',
-          title: '实时行情',
-          icon: 'Timer'
         },
         {
           path: '/stock-history',

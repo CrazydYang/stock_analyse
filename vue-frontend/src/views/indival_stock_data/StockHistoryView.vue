@@ -174,7 +174,24 @@ const stockInfo = reactive<StockInfo>({
   total_market_cap: 0,
   circulating_market_cap: 0,
   created_at: '',
-  updated_at: ''
+  updated_at: '',
+  // 添加必要的字段以符合 StockInfo 类型
+  latest_price: 0,
+  change_percent: 0,
+  change_amount: 0,
+  volume: 0,
+  amount: 0,
+  amplitude: 0,
+  high: 0,
+  low: 0,
+  open_price: 0,
+  close_price: 0,
+  volume_ratio: 0,
+  turnover_rate: 0,
+  price_change_speed: 0,
+  change_5min: 0,
+  change_60d: 0,
+  change_ytd: 0
 })
 
 // 查询表单

@@ -1,34 +1,65 @@
-// 行业数据API服务
+/**
+ * 行业数据API服务
+ * 功能：
+ * 1. 获取行业板块列表
+ * 2. 获取行业板块详情
+ * 3. 获取行业板块成分股
+ * 4. 获取行业板块实时行情
+ */
+import axios from './axiosConfig'
 
-// 类型定义
+// 行业板块基本信息接口
+export interface IndustrySector {
+  code: string
+  name: string
+  description?: string | null
+  total_market_value?: number
+  turnover_rate?: number
+  rise_count?: number
+  fall_count?: number
+  leading_stock?: string
+  leading_stock_change_percent?: number
+  stock_count: number
+  latest_price?: number
+  change_amount?: number
+  change_percent?: number
+  created_at?: string
+  updated_at?: string
+}
+
+// 行业板块成分股接口
 export interface Stock {
   code: string
   name: string
-  latest_price: number
+  price: number
   change_percent: number
-  change_amount: number
-  volume: number
-  amount: number
-  amplitude: number
-  high: number
-  low: number
-  open: number
-  close: number
-  volume_ratio: number
-  turnover_rate: number
-  pe_ratio: number
-  pb_ratio: number
-  total_market_cap: number
-  circulation_market_cap: number
-  speed: number
-  change_5min: number
-  change_60day: number
-  change_ytd: number
-  timestamp: string
+  weight?: number
+  latest_price?: number
+  change_amount?: number
+  volume?: number
+  amount?: number
+  amplitude?: number
+  high?: number
+  low?: number
+  open?: number
+  close?: number
+  volume_ratio?: number
+  turnover_rate?: number
+  pe_ratio?: number
+  pb_ratio?: number
+  total_market_cap?: number
+  circulation_market_cap?: number
+  speed?: number
+  change_5min?: number
+  change_60day?: number
+  change_ytd?: number
+  timestamp?: string
 }
 
+// 行业详情接口（包含统计数据）
 export interface Industry {
   industry: string
+  code?: string
   count: number
   stocks: Stock[]
   avgChangePercent?: number
@@ -36,73 +67,179 @@ export interface Industry {
   avgPbRatio?: number
   avgChange60Day?: number
   avgChangeYtd?: number
+  latest_price?: number
+  change_amount?: number
+  change_percent?: number
+  open?: number
+  high?: number
+  low?: number
+  volume?: number
+  amount?: number
+  turnover_rate?: number
+  rising_stocks?: number
+  falling_stocks?: number
+  unchanged_stocks?: number
+  total_market_value?: number
+  rise_count?: number
+  fall_count?: number
+  leading_stock?: string
+  leading_stock_change_percent?: number
+  description?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
-export interface ApiResponse {
+// 行业板块列表API响应
+export interface IndustrySectorListResponse {
   code: number
   message: string
+  timestamp: string
   data: {
     total: number
-    industries: Industry[]
+    sectors: IndustrySector[]
+    query_time: string
   }
 }
 
-export interface StocksApiResponse {
+// 行业板块成分股API响应
+export interface IndustrySectorConstituentsResponse {
   code: number
   message: string
+  timestamp: string
   data: {
+    sector_code: string
+    sector_name: string
+    constituents: Stock[]
     total: number
-    stocks: Stock[]
+    query_time: string
   }
 }
 
-// API配置
-const API_BASE_URL = '/api'
+// 行业板块实时行情API响应
+export interface IndustrySectorRealtimeResponse {
+  code: number
+  message: string
+  timestamp: string
+  data: {
+    sector_code: string
+    sector_name: string
+    latest_price: number
+    change: number
+    change_percent: number
+    open: number
+    high: number
+    low: number
+    volume: number
+    amount: number
+    turnover_rate: number
+    rising_stocks: number
+    falling_stocks: number
+    unchanged_stocks: number
+  }
+}
+
+// API基础URL
+const API_BASE_URL = '/django/api/stock'
 
 /**
- * 获取行业数据
+ * 获取行业板块列表（不包含成分股）
+ * @param limit 返回行业板块数量限制，默认返回全部
+ * @param offset 偏移量，默认0
+ * @returns Promise<Industry[]> 行业板块列表（不包含成分股）
  */
-export async function fetchIndustriesData(): Promise<Industry[]> {
+export async function fetchIndustriesData(limit?: number, offset?: number): Promise<Industry[]> {
   try {
-    // 获取行业数据
-    const response = await fetch(`${API_BASE_URL}/sh-a/industries`)
-    const data: ApiResponse = await response.json()
+    const params: any = {}
+    if (limit !== undefined) params.limit = limit
+    if (offset !== undefined) params.offset = offset
+
+    const response = await axios.get<IndustrySectorListResponse, IndustrySectorListResponse>(`${API_BASE_URL}/industry-sectors/`, {
+      params
+    })
     
-    if (data.code !== 200 || !data.data || !data.data.industries) {
-      throw new Error(data.message || '获取行业数据失败')
+    if (response.code !== 200) {
+      throw new Error(response.message || '获取行业板块列表失败')
     }
     
-    const industriesData = data.data.industries
+    // 转换数据格式以兼容现有组件
+    const industries: Industry[] = []
     
-    // 获取实时股票数据，用于计算涨跌幅
-    const stocksResponse = await fetch(`${API_BASE_URL}/sh-a/realtime`)
-    const stocksData: StocksApiResponse = await stocksResponse.json()
-    
-    if (stocksData.code === 200 && stocksData.data && stocksData.data.stocks) {
-      // 创建股票代码到股票数据的映射
-      const stockMap = new Map<string, Stock>()
-      stocksData.data.stocks.forEach((stock: Stock) => {
-        stockMap.set(stock.code, stock)
-      })
-      
-      // 为每个行业计算平均涨跌幅
-      industriesData.forEach((industry: Industry) => {
-        const stats = calculateIndustryStats(industry, stockMap)
-        Object.assign(industry, stats)
+    for (const sector of response.data.sectors) {
+      // 只添加基本信息，不获取成分股
+      industries.push({
+        industry: sector.name,
+        code: sector.code,
+        count: sector.stock_count,
+        stocks: [], // 空数组，不包含成分股
+        latest_price: sector.latest_price,
+        change_amount: sector.change_amount,
+        change_percent: sector.change_percent,
+        total_market_value: sector.total_market_value,
+        turnover_rate: sector.turnover_rate,
+        rise_count: sector.rise_count,
+        fall_count: sector.fall_count,
+        leading_stock: sector.leading_stock,
+        leading_stock_change_percent: sector.leading_stock_change_percent,
+        description: sector.description,
+        created_at: sector.created_at,
+        updated_at: sector.updated_at
       })
     }
     
-    return industriesData
+    return industries
   } catch (error) {
-    console.error('获取行业数据错误:', error)
+    console.error('获取行业板块列表错误:', error)
+    throw error
+  }
+}
+
+/**
+ * 获取行业板块成分股
+ * @param sectorCode 行业板块代码
+ * @returns Promise<Stock[]> 行业板块成分股列表
+ */
+export async function fetchIndustrySectorStocks(sectorCode: string): Promise<{stocks: Stock[], stats: any}> {
+  try {
+    // 获取行业板块成分股
+    const constituentsResponse = await axios.get<IndustrySectorConstituentsResponse, IndustrySectorConstituentsResponse>(
+      `${API_BASE_URL}/industry-sector/constituents/${sectorCode}/`
+    )
+    
+    if (constituentsResponse.code !== 200) {
+      throw new Error(constituentsResponse.message || '获取行业成分股失败')
+    }
+    
+    const constituents = constituentsResponse.data.constituents
+    
+    // 计算统计数据
+    const stats = calculateIndustryStats(constituents)
+    
+    return {
+      stocks: constituents,
+      stats
+    }
+  } catch (error) {
+    console.error(`获取行业板块 ${sectorCode} 成分股失败:`, error)
     throw error
   }
 }
 
 /**
  * 计算行业统计数据
+ * @param stocks 股票列表
+ * @returns 统计数据
  */
-function calculateIndustryStats(industry: Industry, stockMap: Map<string, Stock>) {
+function calculateIndustryStats(stocks: Stock[]) {
+  if (!stocks || stocks.length === 0) {
+    return {
+      avgChangePercent: 0,
+      avgPeRatio: 0,
+      avgPbRatio: 0,
+      avgChange60Day: 0,
+      avgChangeYtd: 0
+    }
+  }
+
   let totalChangePercent = 0
   let totalPeRatio = 0
   let totalPbRatio = 0
@@ -114,39 +251,35 @@ function calculateIndustryStats(industry: Industry, stockMap: Map<string, Stock>
   let valid60DayCount = 0
   let validYtdCount = 0
   
-  // 使用行业中的股票列表计算平均值
-  industry.stocks.forEach((stock: Stock) => {
-    const stockData = stockMap.get(stock.code)
-    if (stockData) {
-      // 计算涨跌幅平均值
-      if (typeof stockData.change_percent === 'number') {
-        totalChangePercent += stockData.change_percent
-        validStocksCount++
-      }
-      
-      // 计算PE平均值
-      if (typeof stockData.pe_ratio === 'number' && stockData.pe_ratio > 0) {
-        totalPeRatio += stockData.pe_ratio
-        validPeCount++
-      }
-      
-      // 计算PB平均值
-      if (typeof stockData.pb_ratio === 'number' && stockData.pb_ratio > 0) {
-        totalPbRatio += stockData.pb_ratio
-        validPbCount++
-      }
-      
-      // 计算60天涨跌幅平均值
-      if (typeof stockData.change_60day === 'number') {
-        totalChange60Day += stockData.change_60day
-        valid60DayCount++
-      }
-      
-      // 计算年初至今涨跌幅平均值
-      if (typeof stockData.change_ytd === 'number') {
-        totalChangeYtd += stockData.change_ytd
-        validYtdCount++
-      }
+  stocks.forEach((stock: Stock) => {
+    // 计算涨跌幅平均值
+    if (typeof stock.change_percent === 'number') {
+      totalChangePercent += stock.change_percent
+      validStocksCount++
+    }
+    
+    // 计算PE平均值
+    if (typeof stock.pe_ratio === 'number' && stock.pe_ratio > 0) {
+      totalPeRatio += stock.pe_ratio
+      validPeCount++
+    }
+    
+    // 计算PB平均值
+    if (typeof stock.pb_ratio === 'number' && stock.pb_ratio > 0) {
+      totalPbRatio += stock.pb_ratio
+      validPbCount++
+    }
+    
+    // 计算60天涨跌幅平均值
+    if (typeof stock.change_60day === 'number') {
+      totalChange60Day += stock.change_60day
+      valid60DayCount++
+    }
+    
+    // 计算年初至今涨跌幅平均值
+    if (typeof stock.change_ytd === 'number') {
+      totalChangeYtd += stock.change_ytd
+      validYtdCount++
     }
   })
   
@@ -162,11 +295,71 @@ function calculateIndustryStats(industry: Industry, stockMap: Map<string, Stock>
 
 /**
  * 获取单个行业的详细数据
+ * @param industryName 行业名称
+ * @returns Promise<Industry | null> 行业详细数据
  */
 export async function fetchIndustryDetail(industryName: string): Promise<Industry | null> {
   try {
-    const industries = await fetchIndustriesData()
-    return industries.find(industry => industry.industry === industryName) || null
+    // 首先获取所有行业板块列表，找到对应的行业代码
+    const response = await axios.get<IndustrySectorListResponse, IndustrySectorListResponse>(`${API_BASE_URL}/industry-sectors/`)
+    
+    if (response.code !== 200) {
+      throw new Error(response.message || '获取行业板块列表失败')
+    }
+    
+    // 查找匹配的行业板块
+    const sector = response.data.sectors.find((s: IndustrySector) => s.name === industryName)
+    if (!sector) {
+      console.warn(`未找到行业: ${industryName}`)
+      return null
+    }
+    
+    // 获取行业板块成分股
+    const constituentsResponse = await axios.get<IndustrySectorConstituentsResponse, IndustrySectorConstituentsResponse>(
+      `${API_BASE_URL}/industry-sector/constituents/${sector.code}/`
+    )
+    
+    if (constituentsResponse.code !== 200) {
+      throw new Error(constituentsResponse.message || '获取行业成分股失败')
+    }
+    
+    const constituents = constituentsResponse.data.constituents
+    
+    // 尝试获取实时行情数据
+    let realtimeData = null
+    try {
+      const realtimeResponse = await axios.get<IndustrySectorRealtimeResponse, IndustrySectorRealtimeResponse>(
+        `${API_BASE_URL}/industry-sector/realtime/${sector.code}/`
+      )
+      if (realtimeResponse.code === 200) {
+        realtimeData = realtimeResponse.data
+      }
+    } catch (error) {
+      console.warn(`获取行业 ${sector.code} 实时行情失败:`, error)
+    }
+    
+    // 计算统计数据
+    const stats = calculateIndustryStats(constituents)
+    
+    return {
+      industry: sector.name,
+      code: sector.code,
+      count: sector.stock_count,
+      stocks: constituents,
+      ...stats,
+      latest_price: realtimeData?.latest_price || sector.latest_price,
+      change_amount: realtimeData?.change,
+      change_percent: realtimeData?.change_percent || sector.change_percent,
+      open: realtimeData?.open,
+      high: realtimeData?.high,
+      low: realtimeData?.low,
+      volume: realtimeData?.volume,
+      amount: realtimeData?.amount,
+      turnover_rate: realtimeData?.turnover_rate,
+      rising_stocks: realtimeData?.rising_stocks,
+      falling_stocks: realtimeData?.falling_stocks,
+      unchanged_stocks: realtimeData?.unchanged_stocks
+    }
   } catch (error) {
     console.error('获取行业详情错误:', error)
     throw error
