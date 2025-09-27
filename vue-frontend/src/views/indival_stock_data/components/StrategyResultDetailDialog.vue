@@ -100,7 +100,7 @@
             <el-pagination
               v-model:current-page="currentPage"
               v-model:page-size="pageSize"
-              :total="filteredStocks.length"
+              :total="strategyResult.strategy_result.length"
               :page-sizes="[10, 20, 50, 100]"
               layout="total, sizes, prev, pager, next"
               @size-change="handleSizeChange"

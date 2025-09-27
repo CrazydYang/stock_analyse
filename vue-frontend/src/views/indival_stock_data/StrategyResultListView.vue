@@ -70,12 +70,7 @@
           <el-table-column prop="strategy_description" label="策略描述" min-width="300" show-overflow-tooltip />
           <el-table-column label="选股数量" width="120" align="center">
             <template #default="{ row }">
-              <el-tag type="info">{{ row.strategy_result.total_count }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="执行时间" width="180" align="center">
-            <template #default="{ row }">
-              {{ formatDateTime(row.strategy_result.execution_time) }}
+              <el-tag type="info">{{ row.strategy_result.length }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="创建时间" width="180" align="center">
