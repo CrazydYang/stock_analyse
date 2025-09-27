@@ -202,6 +202,11 @@ const menuItems = computed(() => {
         icon: 'MagicStick',
         children: [
           {
+            path: '/strategy-results',
+            title: '策略选股',
+            icon: 'List'
+          },
+          {
             path: '/stock-viewer',
             title: '股票筛选',
             icon: 'DataAnalysis'

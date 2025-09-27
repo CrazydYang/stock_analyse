@@ -216,6 +216,12 @@ const router = createRouter({
           name: 'stock-history',
           component: () => import('@/views/indival_stock_data/StockHistoryView.vue'),
           meta: { title: '股票历史行情' }
+        },
+        {
+          path: '/strategy-results',
+          name: 'strategy-results',
+          component: () => import('@/views/indival_stock_data/StrategyResultListView.vue'),
+          meta: { title: '策略结果管理' }
         }
       ]
     },
