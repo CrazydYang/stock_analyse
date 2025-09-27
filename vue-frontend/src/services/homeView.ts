@@ -1,0 +1,46 @@
+import { ref } from 'vue'
+/**
+ * 平台功能迭代列表数据
+ * 用于展示平台的功能更新历史和版本信息
+ */
+export const featureUpdates = ref([
+  {
+    id: 6,
+    date: '2025-08-23',
+    version: '0.01',
+    title: '搭建股票分析平台前后端',
+    description: '使用ai快速实现股票分析平台前后端，可以查看一些简单数据, 增加新闻ai分析能力、行业热力图数据、行业rps数据',
+    type: 'guide',
+    status: 'info'
+  },
+  {
+    id: 1,
+    date: '2025-09-14',
+    version: '0.02',
+    title: '增加若干功能',
+    description: '增加了用户注册、登录功能，回测功能模块、行业模块、个股模块、基本面模块',
+    type: 'update',
+    status: 'stable'
+  },
+  {
+    id: 2,
+    date: '2025-09-27',
+    version: '0.03',
+    title: '增加策略选股功能',
+    description: '该功能主要是用来存储展示不同策略的定期结果产出，可以对策略的不同结果均可存储展示，如果日常使用jupyter notebook也可使用接口存储到平台',
+    type: 'update',
+    status: 'stable'
+  },
+
+])
+
+
+// 新闻数据
+export const recentNews = ref([
+  {
+    id: 1,
+    title: '暂无数据',
+    summary: '暂时没有数据',
+    time: '2小时前'
+  },
+])

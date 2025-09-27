@@ -7,39 +7,41 @@
             <span>欢迎使用股票分析系统</span>
           </template>
           <div class="welcome-content">
-            <h2>欢迎来到股票分析系统</h2>
-            <p>这是一个专业的股票分析平台，提供技术分析、基本面分析和投资组合管理功能。</p>
+            <h2>平台功能迭代</h2>
+            <p>查看平台最新的功能更新和版本发布历史，了解系统的持续改进和优化。</p>
             
-            <el-row :gutter="20" class="feature-cards">
-              <el-col :span="8">
-                <el-card class="feature-card" @click="goToStockPicker">
-                  <el-icon size="48" color="#722ed1"><MagicStick /></el-icon>
-                  <h3>智能选股</h3>
-                  <p>基于市场数据的智能股票筛选</p>
-                </el-card>
-              </el-col>
-              <el-col :span="8">
-                <el-card class="feature-card" @click="goToAnalysis">
-                  <el-icon size="48" color="#409EFF"><TrendCharts /></el-icon>
-                  <h3>技术分析</h3>
-                  <p>K线图表与技术指标分析</p>
-                </el-card>
-              </el-col>
-              <el-col :span="8">
-                <el-card class="feature-card" @click="goToFundamental">
-                  <el-icon size="48" color="#67C23A"><Document /></el-icon>
-                  <h3>基本面分析</h3>
-                  <p>财务报表与估值分析</p>
-                </el-card>
-              </el-col>
-              <el-col :span="8">
-                <el-card class="feature-card" @click="goToMarketOverview">
-                  <el-icon size="48" color="#E6A23C"><DataAnalysis /></el-icon>
-                  <h3>市场概况</h3>
-                  <p>大盘数据与市场趋势分析</p>
-                </el-card>
-              </el-col>
-            </el-row>
+            <div class="feature-updates-list">
+              <div 
+                v-for="update in sortedFeatureUpdates" 
+                :key="update.id" 
+                class="update-item"
+              >
+                <div class="update-header">
+                  <div class="update-meta">
+                    <span class="update-date">{{ update.date }}</span>
+                    <el-tag size="small" type="info" class="version-tag">{{ update.version }}</el-tag>
+                    <el-tag 
+                      size="small" 
+                      :type="getStatusTagType(update.status)"
+                      class="status-tag"
+                    >
+                      {{ getStatusText(update.status) }}
+                    </el-tag>
+                  </div>
+                  <el-icon 
+                    :size="20" 
+                    :color="getTypeColor(update.type)"
+                    class="type-icon"
+                  >
+                    <component :is="getTypeIcon(update.type)" />
+                  </el-icon>
+                </div>
+                <div class="update-content">
+                  <h3 class="update-title">{{ update.title }}</h3>
+                  <p class="update-description">{{ update.description }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -103,9 +105,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { TrendCharts, Document, DataAnalysis, MagicStick } from '@element-plus/icons-vue'
+import { Plus, Refresh, Tools, Document, InfoFilled } from '@element-plus/icons-vue'
+import { featureUpdates, recentNews } from '@/services/homeView'
 import { getMarketIndices, getMarketDailyOverview, type MarketIndexChange, type MarketIndexData } from '@/services/marketService'
 
 const router = useRouter()
@@ -175,29 +178,9 @@ const isIndexItem = (name: string): boolean => {
   return indexNames.includes(name)
 }
 
-// 新闻数据
-const recentNews = ref([
-  {
-    id: 1,
-    title: '央行宣布降准0.5个百分点',
-    summary: '央行今日宣布下调金融机构存款准备金率0.5个百分点，释放长期资金约1万亿元。',
-    time: '2小时前'
-  },
-  {
-    id: 2,
-    title: 'A股成交额突破万亿',
-    summary: '今日A股市场成交额突破1万亿元，创近期新高，市场情绪明显回暖。',
-    time: '3小时前'
-  },
-  {
-    id: 3,
-    title: '科技股集体上涨',
-    summary: '半导体、人工智能等科技板块今日集体上涨，多股涨停。',
-    time: '4小时前'
-  }
-])
 
-// 页面导航
+
+// 页面导航 - 保留原有功能但暂时不使用
 const goToStockPicker = () => {
   router.push('/stock-picker')
 }
@@ -218,6 +201,90 @@ const goToMarketOverview = () => {
 onMounted(() => {
   fetchMarketData()
 })
+
+
+
+/**
+ * 按日期排序的功能迭代列表（从最新到最旧）
+ * @returns 排序后的功能迭代列表
+ */
+const sortedFeatureUpdates = computed(() => {
+  return [...featureUpdates.value].sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime()
+  })
+})
+
+/**
+ * 获取状态标签类型
+ * @param status 状态值
+ * @returns Element Plus 标签类型
+ */
+const getStatusTagType = (status: string) => {
+  switch (status) {
+    case 'latest':
+      return 'danger'
+    case 'stable':
+      return 'success'
+    default:
+      return 'info'
+  }
+}
+
+/**
+ * 获取状态标签文本
+ * @param status 状态值
+ * @returns 状态文本
+ */
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'latest':
+      return '最新'
+    case 'stable':
+      return '稳定'
+    default:
+      return '普通'
+  }
+}
+
+/**
+ * 获取更新类型图标
+ * @param type 更新类型
+ * @returns 图标名称
+ */
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case 'feature':
+      return 'Plus'
+    case 'update':
+      return 'Refresh'
+    case 'tool':
+      return 'Tools'
+    case 'guide':
+      return 'Document'
+    default:
+      return 'InfoFilled'
+  }
+}
+
+/**
+ * 获取更新类型颜色
+ * @param type 更新类型
+ * @returns 颜色值
+ */
+const getTypeColor = (type: string) => {
+  switch (type) {
+    case 'feature':
+      return '#67C23A'
+    case 'update':
+      return '#409EFF'
+    case 'tool':
+      return '#E6A23C'
+    case 'guide':
+      return '#909399'
+    default:
+      return '#909399'
+  }
+}
 </script>
 
 <style scoped>
@@ -237,6 +304,79 @@ onMounted(() => {
 .welcome-content p {
   color: #606266;
   margin-bottom: 20px;
+}
+
+/* 功能迭代列表样式 */
+.feature-updates-list {
+  margin-top: 30px;
+}
+
+.update-item {
+  background: #fafafa;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.update-item:hover {
+  background: #f5f7fa;
+  border-color: #c0c4cc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.update-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.update-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-date {
+  color: #909399;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.version-tag {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #b3d8ff;
+}
+
+.status-tag {
+  margin-left: 4px;
+}
+
+.type-icon {
+  flex-shrink: 0;
+}
+
+.update-content {
+  padding-left: 4px;
+}
+
+.update-title {
+  color: #303133;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.update-description {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .feature-cards {
