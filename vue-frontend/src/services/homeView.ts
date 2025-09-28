@@ -31,6 +31,15 @@ export const featureUpdates = ref([
     type: 'update',
     status: 'stable'
   },
+  {
+    id: 2,
+    date: '2025-09-28',
+    version: '0.04',
+    title: '修复若干问题',
+    description: '所有股票数据都清洗为前复权（数据抓取模块修复），k线展示异常修复，回测初始资金默认1000000',
+    type: 'update',
+    status: 'info'
+  },
 
 ])
 

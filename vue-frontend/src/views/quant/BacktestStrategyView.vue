@@ -264,8 +264,9 @@ const debouncedSearchStockList = debounce(searchStockList, 300)
  */
 const handleStockInputChange = (value: string) => {
   stockSearchKeyword.value = value
-  // 当输入长度大于等于1时触发搜索，或者输入为空时显示默认列表
-  if (value.length >= 1 || value.length === 0) {
+  // 只有当输入长度大于等于2时才触发搜索，避免过早loading
+  // 或者当用户清空输入时，显示默认列表
+  if (value.length >= 2 || value === '') {
     debouncedSearchStockList(value)
   }
 }

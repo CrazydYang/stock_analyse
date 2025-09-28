@@ -81,6 +81,8 @@ const updateChart = () => {
     item.high_price
   ])
 
+  console.log('更新图表数据', data)
+
   // 归一化日期工具与映射（兼容 YYYYMMDD / YYYY-MM-DD 等）
   const normalizeDate = (s: string) => (s ? s.replace(/[^0-9]/g, '') : '')
   const dateIndexMap: Map<string, number> = new Map()
@@ -200,9 +202,9 @@ console.log('卖出信号详情:', JSON.stringify(sellSignals))
           
           if (seriesName === 'K线') {
             res += `<div style="color:${color};">${seriesName}</div>`
-            res += `<div>开盘价: ${value[0]}</div>`
-            res += `<div>收盘价: ${value[1]}</div>`
-            res += `<div>最低价: ${value[2]}</div>`
+            res += `<div>开盘价: ${value[1]}</div>`
+            res += `<div>收盘价: ${value[2]}</div>`
+            res += `<div>最低价: ${value[4]}</div>`
             res += `<div>最高价: ${value[3]}</div>`
           }
         })
