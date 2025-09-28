@@ -197,7 +197,7 @@ const strategyForm = reactive({
   symbol: '',
   startDate: '',
   endDate: '',
-  initialCash: 100000,
+  initialCash: 1000000,
   strategyParams: {} as Record<string, any>
 })
 
@@ -353,7 +353,7 @@ const resetForm = () => {
   strategyForm.symbol = ''
   strategyForm.startDate = ''
   strategyForm.endDate = ''
-  strategyForm.initialCash = 100000
+  strategyForm.initialCash = 1000000
   strategyForm.strategyParams = {}
   selectedStrategy.value = null
 }

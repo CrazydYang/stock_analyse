@@ -91,7 +91,7 @@
       "min_turnover_rate": 1,
       "max_turnover_rate": 5,
       "min_market_cap": 100,
-      "max_market_cap": 100000,
+      "max_market_cap": 1000000,
       "sort_by": "turnover_rate",
       "ascending": true
     }

@@ -55,7 +55,7 @@
     "symbol": "000001.SZ",
     "start_date": "2023-01-01",
     "end_date": "2023-12-31",
-    "initial_cash": 100000,
+    "initial_cash": 1000000,
     "strategy_params": {
         "fast_period": 10,
         "slow_period": 30
@@ -179,7 +179,7 @@
         "portfolio_value": [
             {
                 "date": "2023-01-01",
-                "value": 100000
+                "value": 1000000
             },
             {
                 "date": "2023-01-02",
@@ -279,7 +279,7 @@ curl -X POST "http://localhost:8000/django/api/quant/backtest/create/" \
     "symbol": "000001.SZ",
     "start_date": "2023-01-01",
     "end_date": "2023-12-31",
-    "initial_cash": 100000,
+    "initial_cash": 1000000,
     "strategy_params": {
       "fast_period": 10,
       "slow_period": 30

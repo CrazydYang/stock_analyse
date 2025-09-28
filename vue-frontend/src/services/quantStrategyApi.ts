@@ -154,7 +154,7 @@ export async function createBacktestTask(
   symbol: string,
   startDate: string,
   endDate: string,
-  initialCash: number = 100000,
+  initialCash: number = 1000000,
   strategyParams: Record<string, any> = {}
 ): Promise<BacktestTask> {
   try {

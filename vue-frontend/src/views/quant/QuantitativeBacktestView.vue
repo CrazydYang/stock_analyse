@@ -307,7 +307,7 @@ const stockForm = reactive({
 // 策略选择表单
 const strategyForm = reactive({
   strategyName: '',
-  initialCash: 100000,
+  initialCash: 1000000,
   strategyParams: {} as Record<string, any>
 })
 
@@ -568,7 +568,7 @@ const resetBacktestData = () => {
 // 重置策略表单
 const resetStrategyForm = () => {
   strategyForm.strategyName = ''
-  strategyForm.initialCash = 100000
+  strategyForm.initialCash = 1000000
   strategyForm.strategyParams = {}
   selectedStrategy.value = null
   backtestTaskId.value = ''
