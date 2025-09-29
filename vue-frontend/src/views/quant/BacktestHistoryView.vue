@@ -421,8 +421,7 @@ const checkStatus = async (taskId: string) => {
 
 // 查看结果
 const viewResult = (taskId: string) => {
-  selectedTaskId.value = taskId
-  resultDialogVisible.value = true
+  router.push(`/backtest-result/${taskId}`)
 }
 
 // 处理行点击

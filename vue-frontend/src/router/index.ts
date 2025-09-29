@@ -88,6 +88,12 @@ const router = createRouter({
           component: () => import('@/views/quant/StrategyListView.vue'),
           meta: { title: '回测策略列表' }
         },
+        {
+          path: '/backtest-result/:taskId',
+          name: 'BacktestResult',
+          component: () => import('@/views/quant/BacktestResultView.vue'),
+          meta: { title: '回测结果详情' }
+        },
       ]
     },
     {

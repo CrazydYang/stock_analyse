@@ -187,3 +187,27 @@ export const getBacktestResult = async (taskId: string): Promise<BacktestResult>
   const response = await axios.get(`/django/api/quant/backtest/${taskId}/result/`)
   return response.data
 }
+
+/**
+ * 获取观测器数据
+ * @param taskId 任务ID
+ * @param observerType 观测器类型过滤（可选）
+ * @returns Promise<any> 观测器数据
+ */
+export const getBacktestObserver = async (taskId: string, observerType?: string): Promise<any> => {
+  const params = observerType ? { observer_type: observerType } : {}
+  const response = await axios.get(`/django/api/quant/backtest/${taskId}/observer/`, { params })
+  return response
+}
+
+/**
+ * 获取原始数据和指标数据
+ * @param taskId 任务ID
+ * @param dataType 数据类型过滤（可选）
+ * @returns Promise<any> 原始数据和指标数据
+ */
+export const getBacktestRawIndicator = async (taskId: string, dataType?: string): Promise<any> => {
+  const params = dataType ? { data_type: dataType } : {}
+  const response = await axios.get(`/django/api/quant/backtest/${taskId}/raw-indicator/`, { params })
+  return response
+}

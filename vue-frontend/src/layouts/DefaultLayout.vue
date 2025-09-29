@@ -256,11 +256,6 @@ const menuItems = computed(() => {
     icon: 'DataAnalysis',
     children: [
       {
-        path: '/backtest',
-        title: '回测可视化分析',
-        icon: 'DataAnalysis'
-      },
-      {
         path: '/strategy-list',
         title: '回测策略列表',
         icon: 'Document'
