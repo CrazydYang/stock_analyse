@@ -1,7 +1,7 @@
 <template>
   <div class="backtest-strategy-view">
     <div class="page-header">
-      <h1>创建回测策略</h1>
+      <h1>创建回测任务</h1>
       <p>选择策略并配置参数，创建回测任务</p>
     </div>
     
@@ -210,6 +210,8 @@ const loading = ref(false)
 // 股票搜索相关状态
 const stockSearchKeyword = ref('')
 const stockSearchLoading = ref(false)
+// 输入最小长度：只有当输入长度达到该值时才触发远程搜索
+const MIN_SEARCH_LENGTH = 2
 
 // 计算属性：是否可以创建回测任务
 const canCreateBacktest = computed(() => {
@@ -221,7 +223,13 @@ const canCreateBacktest = computed(() => {
 
 /**
  * 搜索股票列表
- * @param keyword 搜索关键词
+ * 功能：根据关键词调用后端接口进行模糊搜索，并将结果写入 stockList 以供下拉展示
+ * 参数：
+ *  - keyword: string 搜索关键词
+ * 返回值：Promise<void>（无显式返回值，异步更新 stockList）
+ * 事件/副作用：
+ *  - 更新 stockSearchLoading 的状态以驱动下拉框的 loading 效果
+ *  - 更新 stockList（影响下拉选项展示）
  */
 const searchStockList = async (keyword: string = '') => {
   try {
@@ -244,8 +252,11 @@ const searchStockList = async (keyword: string = '') => {
 
 /**
  * 防抖函数
- * @param func 要防抖的函数
- * @param delay 延迟时间（毫秒）
+ * 功能：延迟执行高频调用的函数，降低接口压力
+ * 参数：
+ *  - func: Function 需要防抖的函数
+ *  - delay: number 延迟毫秒数
+ * 返回值：(...args) => void 防抖后的函数
  */
 const debounce = (func: Function, delay: number) => {
   let timeoutId: number
@@ -259,15 +270,37 @@ const debounce = (func: Function, delay: number) => {
 const debouncedSearchStockList = debounce(searchStockList, 300)
 
 /**
- * 处理股票选择器输入变化
- * @param value 输入值
+ * 处理股票选择器输入变化（el-select remote-method）
+ * 功能：根据用户输入触发搜索逻辑；无输入时展示默认列表且不显示 loading
+ * 参数：
+ *  - value: string 输入值
+ * 返回值：void
+ * 事件/副作用：
+ *  - 更新 stockSearchKeyword
+ *  - 条件触发 debouncedSearchStockList 进行远程搜索
+ *  - 当输入为空或长度不足时，确保不显示 loading，并保留默认列表
  */
 const handleStockInputChange = (value: string) => {
-  stockSearchKeyword.value = value
-  // 只有当输入长度大于等于2时才触发搜索，避免过早loading
-  // 或者当用户清空输入时，显示默认列表
-  if (value.length >= 2 || value === '') {
-    debouncedSearchStockList(value)
+  const keyword = (value ?? '').trim()
+  stockSearchKeyword.value = keyword
+
+  // 无输入：不触发搜索、不显示 loading，直接展示默认列表
+  if (keyword.length === 0) {
+    stockSearchLoading.value = false
+    // 若默认列表尚未加载（极端情况下），补充加载一次
+    if (stockList.value.length === 0) {
+      // 非防抖，快速填充默认列表
+      loadStockList()
+    }
+    return
+  }
+
+  // 只有当输入长度达到 MIN_SEARCH_LENGTH 时才进行模糊搜索
+  if (keyword.length >= MIN_SEARCH_LENGTH) {
+    debouncedSearchStockList(keyword)
+  } else {
+    // 输入长度不足：不搜索且不显示 loading
+    stockSearchLoading.value = false
   }
 }
 

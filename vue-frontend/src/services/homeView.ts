@@ -40,6 +40,15 @@ export const featureUpdates = ref([
     type: 'update',
     status: 'info'
   },
+  {
+    id: 4,
+    date: '2025-09-29',
+    version: '0.05',
+    title: '优化量化模块子页面名称，增加布林带量化策略',
+    description: '本来计划是每次回测都搞个可视化趋势图，使用backtrade自带的搞了一下午没搞成功，准备尝试其他方案了',
+    type: 'update',
+    status: 'info'
+  },
 
 ])
 

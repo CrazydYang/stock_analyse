@@ -257,7 +257,7 @@ const menuItems = computed(() => {
     children: [
       {
         path: '/backtest',
-        title: '回测分析',
+        title: '回测可视化分析',
         icon: 'DataAnalysis'
       },
       {
@@ -267,12 +267,12 @@ const menuItems = computed(() => {
       },
       {
         path: '/backtest-strategy',
-        title: '创建回测策略',
+        title: '创建回测任务',
         icon: 'Setting'
       },
       {
         path: '/backtest-history',
-        title: '回测历史',
+        title: '回测任务历史',
         icon: 'Clock'
       }
     ]
