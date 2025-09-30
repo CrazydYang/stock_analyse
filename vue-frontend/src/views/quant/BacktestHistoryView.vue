@@ -84,8 +84,12 @@
           class="full-width-table"
         >
           <el-table-column prop="task_id" label="任务ID" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="strategy_name" label="策略" min-width="120" />
-          <el-table-column prop="stock_code" label="股票" min-width="100" />
+          <el-table-column label="策略" min-width="120">
+            <template #default="scope">
+              {{ getStrategyDescription(scope.row.strategy_name) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="stock_name" label="股票" min-width="100" />
           <el-table-column label="状态" width="100">
             <template #default="scope">
               <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
@@ -283,6 +287,13 @@ const checkingTasks = ref(new Set<string>())
 const tableData = reactive<{ tasks: BacktestTask[] }>({
   tasks: [] as BacktestTask[]
 })
+
+
+// 根据策略名获取策略描述
+const getStrategyDescription = (strategyName: string): string => {
+  const strategy = strategyList.value.find(s => s.name === strategyName)
+  return strategy ? strategy.description : strategyName
+}
 
 // 加载任务列表
 const loadTaskList = async () => {
@@ -572,12 +583,12 @@ onMounted(async () => {
 
 /* 收益率颜色 */
 .positive {
-  color: #67c23a;
+  color: #e20725;
   font-weight: bold;
 }
 
 .negative {
-  color: #f56c6c;
+  color: #0a11dd;
   font-weight: bold;
 }
 
