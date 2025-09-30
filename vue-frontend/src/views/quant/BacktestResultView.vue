@@ -23,11 +23,36 @@
           </template>
           
           <div v-if="backtestResult" class="stats-container">
-            <!-- 回测时间区间信息 -->
-            <div class="backtest-period">
-              <div class="period-item">
-                <span class="period-label">回测区间:</span>
-                <span class="period-value">{{ formatDate(taskInfo.start_date) }} 至 {{ formatDate(taskInfo.end_date) }}</span>
+            <!-- 回测时间区间和资金信息放在同一行 -->
+            <div class="top-info-row">
+              <!-- 回测时间区间信息 -->
+              <div class="fund-item">
+                <div class="period-item">
+                  <span class="period-label">回测区间:</span>
+                  <span class="period-value" v-if="taskInfo">{{ formatDate(taskInfo.start_date) }} 至 {{ formatDate(taskInfo.end_date) }}</span>
+                </div>
+              </div>
+              
+              <!-- 资金信息 -->
+              <div class="fund-item">
+                <div class="fund-icon">
+                  <el-icon><Money /></el-icon>
+                </div>
+                <div class="fund-content">
+                  <div class="fund-label">初始资金</div>
+                  <div class="fund-value">¥{{ formatMoney(taskInfo.initial_cash) }}</div>
+                </div>
+              </div>
+              <div class="fund-item">
+                <div class="fund-icon">
+                  <el-icon><Wallet /></el-icon>
+                </div>
+                <div class="fund-content">
+                  <div class="fund-label">最终资金</div>
+                  <div class="fund-value" :class="getReturnClass(backtestResult.performance.final_value - taskInfo.initial_cash)">
+                    ¥{{ formatMoney(backtestResult.performance.final_value) }}
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -82,32 +107,8 @@
               </div>
             </div>
             
-            <!-- 资金信息 -->
-            <div class="funds-info">
-              <div class="fund-item">
-                <div class="fund-icon">
-                  <el-icon><Money /></el-icon>
-                </div>
-                <div class="fund-content">
-                  <div class="fund-label">初始资金</div>
-                  <div class="fund-value">¥{{ formatMoney(taskInfo.initial_cash) }}</div>
-                </div>
-              </div>
-              <div class="fund-item">
-                <div class="fund-icon">
-                  <el-icon><Wallet /></el-icon>
-                </div>
-                <div class="fund-content">
-                  <div class="fund-label">最终资金</div>
-                  <div class="fund-value" :class="getReturnClass(backtestResult.performance.final_value - taskInfo.initial_cash)">
-                    ¥{{ formatMoney(backtestResult.performance.final_value) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
             <!-- 次要指标 - 小卡片显示 -->
-            <div class="secondary-stats">
+            <div class="secondary-stats horizontal-stats">
               <div class="secondary-stat-item">
                 <div class="stat-header">
                   <div class="stat-label">胜率</div>
@@ -182,7 +183,7 @@
                 <div class="stat-header">
                   <div class="stat-label">风险评级</div>
                   <div class="risk-level" :class="getRiskLevel(backtestResult.performance.max_drawdown, backtestResult.performance.sharpe_ratio)">
-                    <el-icon><Shield /></el-icon>
+                    <el-icon><Wallet /></el-icon>
                   </div>
                 </div>
                 <div class="stat-value">
@@ -198,7 +199,7 @@
                 <div class="stat-header">
                   <div class="stat-label">收益风险比</div>
                   <div class="stat-badge info">
-                    <el-icon><Scale /></el-icon>
+                    <el-icon><Coin /></el-icon>
                   </div>
                 </div>
                 <div class="stat-value">
@@ -251,7 +252,7 @@
                事件：无（纯展示）
           -->
           <el-table 
-            :data="filteredTrades || []" 
+            :data="filteredTrades" 
             stripe 
             style="width: 100%"
             :default-sort="{ prop: 'datetime', order: 'descending' }"
@@ -285,22 +286,30 @@
                 <span class="quantity-value">{{ scope.row.size.toLocaleString() }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="value" label="金额" min-width="120" sortable align="right">
+            <el-table-column prop="value" label="成本" min-width="120" sortable align="right">
               <template #default="scope">
                 <span class="amount-value">¥{{ scope.row.value.toLocaleString() }}</span>
               </template>
             </el-table-column>
+            <el-table-column prop="pnl" label="盈亏" min-width="120" sortable align="right">
+              <template #default="scope">
+                <span v-if="scope.row.type === 'sell'" :class="getReturnClass(scope.row.pnl || 0)">
+                  {{ formatMoney(scope.row.pnl) }}
+                </span>
+                <span v-else class="text-muted">-</span>
+              </template>
+            </el-table-column>
             <el-table-column label="收益率" min-width="100" align="right">
               <template #default="scope">
-                <span v-if="scope.row.type === 'sell'" :class="getReturnClass(scope.row.return_rate || 0)">
-                  {{ formatPercent(scope.row.return_rate || 0) }}
+                <span v-if="scope.row.type === 'sell'" :class="getReturnClass(scope.row.pnl_pct || 0)">
+                  {{ formatPercent(scope.row.pnl_pct || 0) }}
                 </span>
                 <span v-else class="text-muted">-</span>
               </template>
             </el-table-column>
             <el-table-column label="手续费" min-width="100" align="right">
               <template #default="scope">
-                <span class="commission-value">¥{{ scope.row.commission?.toFixed(2) || '0.00' }}</span>
+                <span class="commission-value">¥{{ formatMoney(Number(scope.row.commission ?? 0)) }}</span>
               </template>
             </el-table-column>
             <el-table-column label="备注" min-width="120">
@@ -387,12 +396,16 @@ export interface DetailedData {
 }
 
 export interface TradeRecord {
+  pnl?: number
   size: number
   type: string
   price: number
   value: number
+  pnl_pct?: number
+  pnlcomm?: number
   datetime: string
   commission: number
+  trade_closed: boolean
 }
 
 interface ObserverData {
@@ -1009,6 +1022,8 @@ onMounted(async () => {
       fetchObserverData(),
       fetchRawIndicatorData()
     ])
+
+    
     
     await initCharts()
   } catch (error) {
@@ -1093,6 +1108,15 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   font-weight: bold;
+}
+
+/* 顶部信息行 - 回测区间和资金信息 */
+.top-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 /* 基本数据展示 */
@@ -1242,6 +1266,20 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
+  margin-top: 20px;
+}
+
+.horizontal-stats {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.horizontal-stats .secondary-stat-item {
+  min-width: 180px;
+  flex: 1;
 }
 
 .secondary-stat-item {
@@ -1346,11 +1384,11 @@ onUnmounted(() => {
 }
 
 .positive {
-  color: #67c23a;
+  color: #c23a3f;
 }
 
 .negative {
-  color: #f56c6c;
+  color: #6e6cf5;
 }
 
 /* 图表容器 */
@@ -1641,6 +1679,10 @@ onUnmounted(() => {
 }
 
 .price-value, .amount-value {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-weight: 600;
+}
+.commission-value {
   font-family: 'Monaco', 'Menlo', monospace;
   font-weight: 600;
 }

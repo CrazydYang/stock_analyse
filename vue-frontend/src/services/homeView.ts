@@ -49,6 +49,15 @@ export const featureUpdates = ref([
     type: 'update',
     status: 'info'
   },
+  {
+    id: 5,
+    date: '2025-09-30',
+    version: '0.06',
+    title: '优化回测结果详情页展示内容',
+    description: '现在资金、持仓数据正常，交易盈利数据正常，基本指标优化更好看一些，颜色标记进行修改，所有已有策略都增加了过程指标采集',
+    type: 'update',
+    status: 'info'
+  },
 
 ])
 

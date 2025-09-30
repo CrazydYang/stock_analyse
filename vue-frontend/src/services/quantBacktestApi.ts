@@ -107,12 +107,16 @@ export interface BacktestResult {
       value: number
     }>
     trade_records: Array<{
+      pnl?: number
       size: number
-      type: 'buy' | 'sell'
+      type: string
       price: number
       value: number
+      pnl_pct?: number
+      pnlcomm?: number
       datetime: string
       commission: number
+      trade_closed: boolean
     }>
   }
   // 保持向后兼容性
