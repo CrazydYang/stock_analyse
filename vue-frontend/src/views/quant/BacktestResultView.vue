@@ -428,10 +428,7 @@ interface ObserverData {
       value: number
       commission: number
     }>
-    timereturn: Array<{
-      datetime: string
-      timereturn: number
-    }>
+    timereturn: Timereturn[]
     drawdown: Array<{
       datetime: string
       len: number
@@ -440,6 +437,13 @@ interface ObserverData {
     }>
     benchmark: any[]
   }
+}
+
+export interface Timereturn {
+  return: number
+  datetime: string
+  portfolio_value: number
+  cumulative_return: number
 }
 
 interface RawIndicatorData {
@@ -810,7 +814,7 @@ const initCharts = async () => {
     returnChart = echarts.init(returnChartRef.value)
     const returnData = observerData.value.observer_data.timereturn
     const dates = returnData.map(item => item.datetime.split(' ')[0])
-    const returns = returnData.map(item => item.timereturn * 100)
+    const returns = returnData.map(item => item.return)
     
     const option = {
       tooltip: { 
