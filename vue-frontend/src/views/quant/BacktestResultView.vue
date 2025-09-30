@@ -638,12 +638,12 @@ const initCharts = async () => {
       },
       // 买入信号
       { 
-        name: '买入', 
-        type: 'scatter', 
-        data: buySignals,
-        symbolSize: 8,
-        itemStyle: { color: '#67C23A' },
-        symbol: 'triangle'
+          name: '买入', 
+          type: 'scatter', 
+          data: buySignals,
+          symbolSize: 8,
+          itemStyle: { color: '#F20505' },
+          symbol: 'triangle' // 将 'triangle' 改为 'arrow'
       },
       // 卖出信号
       { 
@@ -651,7 +651,7 @@ const initCharts = async () => {
         type: 'scatter', 
         data: sellSignals,
         symbolSize: 8,
-        itemStyle: { color: '#F56C6C' },
+        itemStyle: { color: '#030008' },
         symbol: 'triangle',
         symbolRotate: 180
       }
@@ -665,13 +665,25 @@ const initCharts = async () => {
       const indicatorColors = ['#5470c6','#91cc75','#fac858','#ee6666','#73c0de','#3ba272','#fc8452','#9a60b4','#ea7ccc','#2f4554']
       let colorIdx = 0
       
-      // 为所有指标添加系列，根据类型决定使用哪个Y轴
+      // 计算收盘价的最大值
+      const closeMaxValue = Math.max(...closeData)
+      
+      // 为所有指标添加系列，根据指标最大值与收盘价最大值的比较来决定使用哪个Y轴
       Object.keys(indicatorData).forEach(key => {
         if (indicatorData[key]) {
-          // 判断指标类型，crossover类型放右边Y轴，其他放左边
+          // 计算当前指标的最大值
+          const indicatorMaxValue = Math.max(...indicatorData[key].filter(v => v !== null && v !== undefined))
+          
+          // 判断指标类型，crossover类型放右边Y轴，其他根据最大值比例决定
           const isCrossover = key.toLowerCase().includes('crossover')
           const isSignal = key.toLowerCase().includes('signal')
-          const yAxisIndex = isCrossover || isSignal ? 1 : 0
+          
+          // 计算指标最大值与收盘价最大值的比例
+          const ratio = indicatorMaxValue / closeMaxValue
+          
+          // 如果指标最大值比收盘价最大值小50%以上(ratio < 0.5)，或者是crossover/signal类型，则用第二个Y轴
+          const yAxisIndex = (ratio < 0.5 || isCrossover || isSignal) ? 1 : 0
+          
           const color = indicatorColors[colorIdx++ % indicatorColors.length]
           series.push({
             name: key,
@@ -679,7 +691,7 @@ const initCharts = async () => {
             data: indicatorData[key],
             smooth: true,
             showSymbol: false,
-            yAxisIndex: yAxisIndex, // 信号和crossover使用第二个Y轴，其他使用第一个Y轴
+            yAxisIndex: yAxisIndex, // 根据比例或类型决定使用哪个Y轴
             lineStyle: {
               width: 1.5,
               color: color
