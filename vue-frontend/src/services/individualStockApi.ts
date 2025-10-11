@@ -84,6 +84,43 @@ export interface StockHistory {
   created_at: string
 }
 
+// 业绩快报数据接口
+export interface PerformanceReport {
+  id: number
+  stock_code: string
+  stock_name: string
+  report_date: string
+  earnings_per_share: number
+  operating_revenue: number
+  operating_revenue_growth_rate: number
+  operating_revenue_quarter_growth: number
+  net_profit: number
+  net_profit_growth_rate: number
+  net_profit_quarter_growth: number
+  net_assets_per_share: number
+  roe: number
+  operating_cash_flow_per_share: number
+  gross_profit_margin: number | null
+  industry: string
+  announcement_date: string
+  created_at: string
+  updated_at: string
+}
+
+// 业绩快报响应接口
+export interface PerformanceReportResponse {
+  stock_code: string
+  reports: PerformanceReport[]
+  pagination: {
+    current_page: number
+    total_pages: number
+    total_count: number
+    page_size: number
+    has_next: boolean
+    has_previous: boolean
+  }
+}
+
 // 分页查询参数
 export interface PageParams {
   page?: number
@@ -225,4 +262,15 @@ export const getStockInfo = async (stockCode: string): Promise<StockInfo> => {
 export const updateStockData = async (params: StockUpdateParams = {}): Promise<StockUpdateResponse> => {
   const response = await axios.post<ApiResponse<StockUpdateResponse>>(`${API_BASE_URL}/update/`, params)
   return response.data.data
+}
+
+/**
+ * 获取指定股票的业绩快报数据
+ * @param stockCode 股票代码
+ * @param params 分页参数
+ * @returns Promise<PerformanceReportResponse> 业绩快报数据
+ */
+export const getStockPerformanceReports = async (stockCode: string, params: PageParams = {}): Promise<PerformanceReportResponse> => {
+  const response = await axios.get<PerformanceReportResponse>(`${API_BASE_URL}/${stockCode}/performance-reports/`, { params })
+  return response.data
 }

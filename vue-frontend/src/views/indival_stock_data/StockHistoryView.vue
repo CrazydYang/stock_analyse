@@ -61,6 +61,12 @@
         <div ref="chartRef" class="stock-chart"></div>
       </div>
 
+      <!-- 业绩数据趋势图 -->
+      <div v-if="!performanceLoading && performanceData.length > 0" class="chart-container">
+        <h3>业绩数据趋势</h3>
+        <div ref="performanceChartRef" class="performance-chart"></div>
+      </div>
+
       <!-- 历史行情数据表格 -->
       <div v-if="!loading && historyData.length > 0" class="table-container">
         <h3>历史行情数据</h3>
@@ -146,8 +152,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Refresh, Search, RefreshLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import { getStockList, getStockHistory } from '@/services/individualStockApi'
-import type { StockInfo, StockHistory } from '@/services/individualStockApi'
+import { getStockList, getStockHistory, getStockPerformanceReports } from '@/services/individualStockApi'
+import type { StockInfo, StockHistory, PerformanceReport } from '@/services/individualStockApi'
 
 // 路由
 const route = useRoute()
@@ -155,11 +161,14 @@ const router = useRouter()
 
 // 图表引用
 const chartRef = ref<HTMLElement | null>(null)
+const performanceChartRef = ref<HTMLElement | null>(null)
 let chart: echarts.ECharts | null = null
+let performanceChart: echarts.ECharts | null = null
 
 // 数据加载状态
 const loading = ref(false)
 const searchLoading = ref(false)
+const performanceLoading = ref(false)
 
 // 股票信息
 const stockInfo = reactive<StockInfo>({
@@ -202,6 +211,9 @@ const queryForm = reactive({
 
 // 历史行情数据
 const historyData = ref<StockHistory[]>([])
+
+// 业绩快报数据
+const performanceData = ref<PerformanceReport[]>([])
 
 // 股票选择
 const stockOptions = ref<StockInfo[]>([])
@@ -276,6 +288,9 @@ const fetchHistoryData = async () => {
       stockInfo.name = latestData.stock_name || ''
     }
     
+    // 同时获取业绩数据
+    await fetchPerformanceData()
+    
     ElMessage.success('历史行情数据加载成功')
   } catch (error) {
     console.error('获取历史行情数据失败:', error)
@@ -289,6 +304,42 @@ const fetchHistoryData = async () => {
     } else if (chart) {
       chart.clear()
     }
+    
+    // 初始化业绩图表
+    if (performanceData.value && performanceData.value.length > 0) {
+      await nextTick()
+      initPerformanceChart()
+    } else if (performanceChart) {
+      performanceChart.clear()
+    }
+  }
+}
+
+/**
+ * 获取业绩快报数据
+ * 功能：获取指定股票的业绩快报数据，用于展示业绩趋势
+ */
+const fetchPerformanceData = async () => {
+  if (!queryForm.code) return
+  
+  performanceLoading.value = true
+  try {
+    const response = await getStockPerformanceReports(queryForm.code, {
+      page: 1,
+      page_size: 20
+    })
+    
+    // 按报告日期排序（最新的在前）
+    performanceData.value = response.reports.sort((a, b) => 
+      b.report_date.localeCompare(a.report_date)
+    )
+    
+    console.log('业绩数据加载成功:', performanceData.value.length, '条记录')
+  } catch (error) {
+    console.error('获取业绩数据失败:', error)
+    // 不显示错误消息，因为业绩数据是可选的
+  } finally {
+    performanceLoading.value = false
   }
 }
 
@@ -450,6 +501,132 @@ const initChart = () => {
   })
 }
 
+/**
+ * 初始化业绩数据趋势图表
+ * 功能：展示股票的业绩数据趋势，包括营业收入、净利润、每股收益等关键指标
+ */
+const initPerformanceChart = () => {
+  if (!performanceChartRef.value || !performanceData.value.length) return
+  
+  // 如果图表已存在，先销毁
+  if (performanceChart) {
+    performanceChart.dispose()
+  }
+  
+  // 创建图表实例
+  performanceChart = echarts.init(performanceChartRef.value)
+  
+  // 准备数据 - 按时间排序（最早的在前）
+  const sortedData = [...performanceData.value].sort((a, b) => 
+    a.report_date.localeCompare(b.report_date)
+  )
+  
+  const dates = sortedData.map(item => item.report_date)
+  const revenue = sortedData.map(item => item.operating_revenue / 100000000) // 转换为亿元
+  const netProfit = sortedData.map(item => item.net_profit / 100000000) // 转换为亿元
+  const eps = sortedData.map(item => item.earnings_per_share)
+  const roe = sortedData.map(item => item.roe)
+  
+  // 设置图表选项
+  const option = {
+    title: {
+      text: `${stockInfo.name} (${stockInfo.code}) 业绩数据趋势`,
+      left: 'center'
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      }
+    },
+    legend: {
+      data: ['营业收入(亿元)', '净利润(亿元)', '每股收益(元)', 'ROE(%)'],
+      bottom: 10
+    },
+    grid: {
+      left: '10%',
+      right: '10%',
+      top: '15%',
+      bottom: '15%'
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLabel: {
+        rotate: 45
+      }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '金额(亿元)',
+        position: 'left',
+        axisLabel: {
+          formatter: '{value}'
+        }
+      },
+      {
+        type: 'value',
+        name: '比率',
+        position: 'right',
+        axisLabel: {
+          formatter: '{value}'
+        }
+      }
+    ],
+    series: [
+      {
+        name: '营业收入(亿元)',
+        type: 'line',
+        yAxisIndex: 0,
+        data: revenue,
+        smooth: true,
+        itemStyle: {
+          color: '#409EFF'
+        }
+      },
+      {
+        name: '净利润(亿元)',
+        type: 'line',
+        yAxisIndex: 0,
+        data: netProfit,
+        smooth: true,
+        itemStyle: {
+          color: '#67C23A'
+        }
+      },
+      {
+        name: '每股收益(元)',
+        type: 'line',
+        yAxisIndex: 1,
+        data: eps,
+        smooth: true,
+        itemStyle: {
+          color: '#E6A23C'
+        }
+      },
+      {
+        name: 'ROE(%)',
+        type: 'line',
+        yAxisIndex: 1,
+        data: roe,
+        smooth: true,
+        itemStyle: {
+          color: '#F56C6C'
+        }
+      }
+    ]
+  }
+  
+  // 设置图表选项并渲染
+  performanceChart.setOption(option)
+  
+  // 响应窗口大小变化
+  window.addEventListener('resize', () => {
+    performanceChart?.resize()
+  })
+}
+
 // 方法：搜索股票
 const searchStocks = async (query: string) => {
   if (query.length < 2) return
@@ -574,8 +751,17 @@ onBeforeUnmount(() => {
     chart = null
   }
   
+  if (performanceChart) {
+    performanceChart.dispose()
+    performanceChart = null
+  }
+  
   window.removeEventListener('resize', () => {
     chart?.resize()
+  })
+  
+  window.removeEventListener('resize', () => {
+    performanceChart?.resize()
   })
 })
 </script>
@@ -626,6 +812,11 @@ onBeforeUnmount(() => {
 .stock-chart {
   width: 100%;
   height: 500px;
+}
+
+.performance-chart {
+  width: 100%;
+  height: 400px;
 }
 
 .table-container {

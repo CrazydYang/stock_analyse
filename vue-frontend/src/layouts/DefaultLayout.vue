@@ -207,25 +207,15 @@ const menuItems = computed(() => {
             icon: 'List'
           },
           {
-            path: '/stock-viewer',
-            title: '股票筛选',
-            icon: 'DataAnalysis'
+            path: '/stock-list',
+            title: '股票列表',
+            icon: 'List'
           },
           {
-            path: '/stock-kline',
-            title: '股票K线图分析',
-            icon: 'TrendCharts'
+            path: '/stock-history',
+            title: '历史行情',
+            icon: 'Calendar'
           },
-          {
-          path: '/stock-list',
-          title: '股票列表',
-          icon: 'List'
-        },
-        {
-          path: '/stock-history',
-          title: '历史行情',
-          icon: 'Calendar'
-        },
       ]
     },
     {

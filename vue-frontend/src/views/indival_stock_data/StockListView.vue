@@ -81,16 +81,9 @@
               <el-button 
                 type="primary" 
                 size="small"
-                @click="viewRealtime(scope.row.code)"
-              >
-                实时行情
-              </el-button>
-              <el-button 
-                type="info" 
-                size="small"
                 @click="viewHistory(scope.row.code)"
               >
-                历史行情
+                股票详情
               </el-button>
             </template>
           </el-table-column>
