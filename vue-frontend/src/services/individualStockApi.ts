@@ -121,6 +121,83 @@ export interface PerformanceReportResponse {
   }
 }
 
+// 资产负债表数据接口
+export interface BalanceSheet {
+  id: number
+  stock_code: string
+  stock_name: string
+  report_date: string
+  monetary_funds: number
+  accounts_receivable: number
+  inventory: number
+  total_assets: number
+  total_assets_growth_rate: number
+  accounts_payable: number
+  total_liabilities: number
+  advance_receipts: number
+  total_liabilities_growth_rate: number
+  debt_to_asset_ratio: number
+  total_equity: number
+  announcement_date: string
+  created_at: string
+  updated_at: string
+}
+
+// 利润表数据接口
+export interface IncomeStatement {
+  id: number
+  stock_code: string
+  stock_name: string
+  report_date: string
+  net_profit: number
+  net_profit_growth_rate: number
+  operating_revenue: number
+  operating_revenue_growth_rate: number
+  operating_expenses: number
+  sales_expenses: number
+  management_expenses: number
+  financial_expenses: number
+  total_operating_expenses: number
+  operating_profit: number
+  total_profit: number
+  announcement_date: string
+  created_at: string
+  updated_at: string
+}
+
+// 现金流量表数据接口
+export interface CashFlowStatement {
+  id: number
+  stock_code: string
+  stock_name: string
+  report_date: string
+  net_cash_flow: number
+  net_cash_flow_growth_rate: number
+  operating_cash_flow: number
+  operating_cash_flow_ratio: number
+  investing_cash_flow: number
+  investing_cash_flow_ratio: number
+  financing_cash_flow: number
+  financing_cash_flow_ratio: number
+  announcement_date: string
+  created_at: string
+  updated_at: string
+}
+
+// 财报数据查询参数
+export interface FinancialStatementParams extends PageParams {
+  date?: string // 报告期，格式：YYYYMMDD
+}
+
+// 财报数据响应接口
+export interface FinancialStatementResponse<T> {
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+  data: T[]
+}
+
 // 分页查询参数
 export interface PageParams {
   page?: number
@@ -272,5 +349,68 @@ export const updateStockData = async (params: StockUpdateParams = {}): Promise<S
  */
 export const getStockPerformanceReports = async (stockCode: string, params: PageParams = {}): Promise<PerformanceReportResponse> => {
   const response = await axios.get<PerformanceReportResponse>(`${API_BASE_URL}/${stockCode}/performance-reports/`, { params })
+  return response.data
+}
+
+/**
+ * 获取所有股票的资产负债表数据
+ * @param params 查询参数
+ * @returns Promise<FinancialStatementResponse<BalanceSheet>> 资产负债表数据
+ */
+export const getBalanceSheets = async (params: FinancialStatementParams = {}): Promise<BalanceSheet[]> => {
+  const response = await axios.get<BalanceSheet[]>('/django/api/individual_stock/balance-sheets/', { params })
+  return response.data
+}
+
+/**
+ * 获取指定股票的资产负债表数据
+ * @param stockCode 股票代码
+ * @param params 查询参数
+ * @returns Promise<FinancialStatementResponse<BalanceSheet>> 资产负债表数据
+ */
+export const getStockBalanceSheets = async (stockCode: string, params: FinancialStatementParams = {}): Promise<FinancialStatementResponse<BalanceSheet>> => {
+  const response = await axios.get<FinancialStatementResponse<BalanceSheet>>(`${API_BASE_URL}/${stockCode}/balance-sheets/`, { params })
+  return response.data
+}
+
+/**
+ * 获取所有股票的利润表数据
+ * @param params 查询参数
+ * @returns Promise<FinancialStatementResponse<IncomeStatement>> 利润表数据
+ */
+export const getIncomeStatements = async (params: FinancialStatementParams = {}): Promise<IncomeStatement[]> => {
+  const response = await axios.get<IncomeStatement[]>('/django/api/individual_stock/income-statements/', { params })
+  return response.data
+}
+
+/**
+ * 获取指定股票的利润表数据
+ * @param stockCode 股票代码
+ * @param params 查询参数
+ * @returns Promise<FinancialStatementResponse<IncomeStatement>> 利润表数据
+ */
+export const getStockIncomeStatements = async (stockCode: string, params: FinancialStatementParams = {}): Promise<FinancialStatementResponse<IncomeStatement>> => {
+  const response = await axios.get<FinancialStatementResponse<IncomeStatement>>(`${API_BASE_URL}/${stockCode}/income-statements/`, { params })
+  return response.data
+}
+
+/**
+ * 获取所有股票的现金流量表数据
+ * @param params 查询参数
+ * @returns Promise<CashFlowStatement[]> 现金流量表数据
+ */
+export const getCashFlowStatements = async (params: FinancialStatementParams = {}): Promise<CashFlowStatement[]> => {
+  const response = await axios.get<CashFlowStatement[]>(`/django/api/individual_stock/cash-flow-statements/`, { params })
+  return response.data
+}
+
+/**
+ * 获取指定股票的现金流量表数据
+ * @param stockCode 股票代码
+ * @param params 查询参数
+ * @returns Promise<FinancialStatementResponse<CashFlowStatement>> 现金流量表数据
+ */
+export const getStockCashFlowStatements = async (stockCode: string, params: FinancialStatementParams = {}): Promise<FinancialStatementResponse<CashFlowStatement>> => {
+  const response = await axios.get<FinancialStatementResponse<CashFlowStatement>>(`${API_BASE_URL}/${stockCode}/cash-flow-statements/`, { params })
   return response.data
 }

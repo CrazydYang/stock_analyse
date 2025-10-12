@@ -57,68 +57,72 @@
       </div>
 
       <!-- 历史行情图表 -->
-      <div v-if="!loading && historyData.length > 0" class="chart-container">
-        <div ref="chartRef" class="stock-chart"></div>
+      <div class="chart-container">
+        <StockChart 
+          :history-data="historyData" 
+          :stock-info="stockInfo" 
+          :loading="loading"
+        />
       </div>
 
       <!-- 业绩数据趋势图 -->
-      <div v-if="!performanceLoading && performanceData.length > 0" class="chart-container">
-        <h3>业绩数据趋势</h3>
-        <div ref="performanceChartRef" class="performance-chart"></div>
+      <div class="chart-container">
+        <PerformanceChart 
+          :performance-data="performanceData" 
+          :stock-info="stockInfo" 
+          :loading="performanceLoading"
+        />
       </div>
 
-      <!-- 历史行情数据表格 -->
-      <div v-if="!loading && historyData.length > 0" class="table-container">
-        <h3>历史行情数据</h3>
-        <el-table
-          :data="paginatedHistoryData"
-          border
-          stripe
-          style="width: 100%; max-width: 100%"
-          height="400"
-          @sort-change="handleSortChange"
-        >
-          <el-table-column prop="date" label="日期" width="120" sortable />
-          <el-table-column prop="open_price" label="开盘价" min-width="100" sortable />
-          <el-table-column prop="high_price" label="最高价" min-width="100" sortable />
-          <el-table-column prop="low_price" label="最低价" min-width="100" sortable />
-          <el-table-column prop="close_price" label="收盘价" min-width="100" sortable />
-          <el-table-column prop="change_percent" label="涨跌幅" min-width="100" sortable>
-            <template #default="scope">
-              <span :class="getPriceClass(scope.row.change_percent)">
-                {{ scope.row.change_percent > 0 ? '+' : '' }}{{ scope.row.change_percent.toFixed(2) }}%
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="volume" label="成交量" min-width="120" sortable>
-            <template #default="scope">
-              {{ formatVolume(scope.row.volume) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="amount" label="成交额" min-width="120" sortable>
-            <template #default="scope">
-              {{ formatAmount(scope.row.amount) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="turnover_rate" label="换手率" min-width="100" sortable>
-            <template #default="scope">
-              {{ scope.row.turnover_rate ? scope.row.turnover_rate.toFixed(2) + '%' : '-' }}
-            </template>
-          </el-table-column>
-        </el-table>
+      <!-- 数据展示区域 -->
+      <div v-if="!loading && (historyData.length > 0 || queryForm.code)" class="data-container">
+        <el-tabs v-model="activeTab" type="card" class="data-tabs">
+          <!-- 历史行情标签页 -->
+          <el-tab-pane label="历史行情" name="history">
+            <HistoryDataTable 
+              :history-data="historyData" 
+              @refresh="handleSearch"
+              @sort-change="handleSortChange"
+            />
+          </el-tab-pane>
 
-        <!-- 分页 -->
-        <div class="pagination-container">
-          <el-pagination
-            v-model:current-page="currentPage"
-            :page-size="pageSize"
-            :total="historyData.length"
-            :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
+          <!-- 业绩数据标签页 -->
+          <el-tab-pane label="业绩数据" name="performance">
+            <PerformanceDataTable 
+              :performance-data="performanceData" 
+              :loading="performanceLoading"
+              @refresh="handleSearch"
+              @sort-change="handleSortChange"
+            />
+          </el-tab-pane>
+
+          <!-- 资产负债表标签页 -->
+          <el-tab-pane label="资产负债表" name="balance-sheet">
+            <BalanceSheetTable 
+              :stock-code="queryForm.code" 
+              @loading="handleFinancialLoading"
+              @error="handleFinancialError"
+            />
+          </el-tab-pane>
+
+          <!-- 利润表标签页 -->
+          <el-tab-pane label="利润表" name="income-statement">
+            <IncomeStatementTable 
+              :stock-code="queryForm.code" 
+              @loading="handleFinancialLoading"
+              @error="handleFinancialError"
+            />
+          </el-tab-pane>
+
+          <!-- 现金流量表标签页 -->
+          <el-tab-pane label="现金流量表" name="cash-flow-statement">
+            <CashFlowStatementTable 
+              :stock-code="queryForm.code" 
+              @loading="handleFinancialLoading"
+              @error="handleFinancialError"
+            />
+          </el-tab-pane>
+        </el-tabs>
       </div>
 
       <!-- 加载中 -->
@@ -151,19 +155,21 @@ import { ref, reactive, onMounted, watch, nextTick, computed, onBeforeUnmount } 
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Refresh, Search, RefreshLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
 import { getStockList, getStockHistory, getStockPerformanceReports } from '@/services/individualStockApi'
 import type { StockInfo, StockHistory, PerformanceReport } from '@/services/individualStockApi'
+// 导入财报组件
+import BalanceSheetTable from './components/BalanceSheetTable.vue'
+import IncomeStatementTable from './components/IncomeStatementTable.vue'
+import CashFlowStatementTable from './components/CashFlowStatementTable.vue'
+import HistoryDataTable from './components/HistoryDataTable.vue'
+import PerformanceDataTable from './components/PerformanceDataTable.vue'
+// 导入图表组件
+import StockChart from './components/StockChart.vue'
+import PerformanceChart from './components/PerformanceChart.vue'
 
 // 路由
 const route = useRoute()
 const router = useRouter()
-
-// 图表引用
-const chartRef = ref<HTMLElement | null>(null)
-const performanceChartRef = ref<HTMLElement | null>(null)
-let chart: echarts.ECharts | null = null
-let performanceChart: echarts.ECharts | null = null
 
 // 数据加载状态
 const loading = ref(false)
@@ -222,9 +228,11 @@ const stockOptions = ref<StockInfo[]>([])
 const sortField = ref('date')
 const sortOrder = ref('desc')
 
-// 分页
-const currentPage = ref(1)
-const pageSize = ref(20)
+// 标签页状态
+const activeTab = ref('history')
+
+// 财报组件加载状态
+const financialLoading = ref(false)
 
 // 计算属性：排序后的历史数据
 const sortedHistoryData = computed(() => {
@@ -248,13 +256,6 @@ const sortedHistoryData = computed(() => {
   })
 })
 
-// 计算属性：当前页的历史数据
-const paginatedHistoryData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return sortedHistoryData.value.slice(start, end)
-})
-
 // 方法：返回上一页
 const goBack = () => {
   router.back()
@@ -273,10 +274,21 @@ const fetchHistoryData = async () => {
     const startDate = queryForm.dateRange[0] || ''
     const endDate = queryForm.dateRange[1] || ''
     
+    console.log('StockHistoryView fetchHistoryData called', {
+      code: queryForm.code,
+      startDate,
+      endDate
+    })
+    
     const response = await getStockHistory(queryForm.code, {
       start_date: startDate,
       end_date: endDate,
       adjust: ''
+    })
+    
+    console.log('StockHistoryView getStockHistory response', {
+      responseLength: response?.length,
+      firstItem: response?.[0]
     })
     
     historyData.value = response
@@ -286,6 +298,8 @@ const fetchHistoryData = async () => {
       const latestData = response[0]
       stockInfo.code = queryForm.code
       stockInfo.name = latestData.stock_name || ''
+      
+      console.log('StockHistoryView stockInfo updated', stockInfo)
     }
     
     // 同时获取业绩数据
@@ -297,21 +311,6 @@ const fetchHistoryData = async () => {
     ElMessage.error('获取历史行情数据失败，请稍后重试')
   } finally {
     loading.value = false
-    // 在loading关闭并且DOM更新后再初始化图表，确保chart容器已渲染
-    if (historyData.value && historyData.value.length > 0) {
-      await nextTick()
-      initChart()
-    } else if (chart) {
-      chart.clear()
-    }
-    
-    // 初始化业绩图表
-    if (performanceData.value && performanceData.value.length > 0) {
-      await nextTick()
-      initPerformanceChart()
-    } else if (performanceChart) {
-      performanceChart.clear()
-    }
   }
 }
 
@@ -343,289 +342,7 @@ const fetchPerformanceData = async () => {
   }
 }
 
-// 方法：初始化图表
-const initChart = () => {
-  if (!chartRef.value) return
-  
-  // 如果图表已存在，先销毁
-  if (chart) {
-    chart.dispose()
-  }
-  
-  // 创建图表实例
-  chart = echarts.init(chartRef.value)
-  
-  // 准备数据
-  const data = historyData.value.map(item => [
-    item.date,
-    item.open_price,
-    item.close_price,
-    item.low_price,
-    item.high_price,
-    item.volume
-  ])
-  
-  // 设置图表选项
-  const option = {
-    title: {
-      text: `${stockInfo.name} (${stockInfo.code}) 历史K线图`,
-      left: 'center'
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
-      }
-    },
-    legend: {
-      data: ['K线', '成交量'],
-      bottom: 10
-    },
-    grid: [
-      {
-        id: 'main',
-        left: '10%',
-        right: '10%',
-        height: '60%',
-        top: '10%'
-      },
-      {
-        id: 'volume',
-        left: '10%',
-        right: '10%',
-        top: '75%',
-        height: '15%'
-      }
-    ],
-    xAxis: [
-      {
-        type: 'category',
-        data: historyData.value.map(item => item.date),
-        scale: true,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        splitLine: { show: false },
-        splitNumber: 20,
-        gridIndex: 0
-      },
-      {
-        type: 'category',
-        data: historyData.value.map(item => item.date),
-        scale: true,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        splitLine: { show: false },
-        gridIndex: 1,
-        axisLabel: {show: false}
-      }
-    ],
-    yAxis: [
-      {
-        type: 'value',
-        scale: true,
-        splitLine: { show: true },
-        position: 'right',
-        name: '价格',
-        nameLocation: 'middle',
-        nameGap: 30,
-        gridIndex: 0
-      },
-      {
-        type: 'value',
-        scale: true,
-        splitLine: { show: false },
-        name: '成交量',
-        nameLocation: 'middle',
-        nameGap: 15,
-        gridIndex: 1
-      }
-    ],
-    dataZoom: [
-      {
-        type: 'inside',
-        start: 0,
-        end: 100,
-        xAxisIndex: [0, 1]
-      },
-      {
-        show: true,
-        type: 'slider',
-        bottom: 5,
-        start: 0,
-        end: 100,
-        xAxisIndex: [0, 1]
-      }
-    ],
-    series: [
-      {
-        name: 'K线',
-        type: 'candlestick',
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        data: historyData.value.map(item => [
-          item.open_price,
-          item.close_price,
-          item.low_price,
-          item.high_price
-        ]),
-        itemStyle: {
-          color: '#f56c6c',
-          color0: '#67c23a',
-          borderColor: '#f56c6c',
-          borderColor0: '#67c23a'
-        }
-      },
-      {
-        name: '成交量',
-        type: 'bar',
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: historyData.value.map(item => item.volume),
-        itemStyle: {
-          color: function(params: any) {
-            const index = params.dataIndex
-            const item = historyData.value[index]
-            return item.close_price > item.open_price ? '#f56c6c' : '#67c23a'
-          }
-        }
-      }
-    ]
-  }
-  
-  // 设置图表选项并渲染
-  chart.setOption(option)
-  
-  // 响应窗口大小变化
-  window.addEventListener('resize', () => {
-    chart?.resize()
-  })
-}
 
-/**
- * 初始化业绩数据趋势图表
- * 功能：展示股票的业绩数据趋势，包括营业收入、净利润、每股收益等关键指标
- */
-const initPerformanceChart = () => {
-  if (!performanceChartRef.value || !performanceData.value.length) return
-  
-  // 如果图表已存在，先销毁
-  if (performanceChart) {
-    performanceChart.dispose()
-  }
-  
-  // 创建图表实例
-  performanceChart = echarts.init(performanceChartRef.value)
-  
-  // 准备数据 - 按时间排序（最早的在前）
-  const sortedData = [...performanceData.value].sort((a, b) => 
-    a.report_date.localeCompare(b.report_date)
-  )
-  
-  const dates = sortedData.map(item => item.report_date)
-  const revenue = sortedData.map(item => item.operating_revenue / 100000000) // 转换为亿元
-  const netProfit = sortedData.map(item => item.net_profit / 100000000) // 转换为亿元
-  const eps = sortedData.map(item => item.earnings_per_share)
-  const roe = sortedData.map(item => item.roe)
-  
-  // 设置图表选项
-  const option = {
-    title: {
-      text: `${stockInfo.name} (${stockInfo.code}) 业绩数据趋势`,
-      left: 'center'
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
-      }
-    },
-    legend: {
-      data: ['营业收入(亿元)', '净利润(亿元)', '每股收益(元)', 'ROE(%)'],
-      bottom: 10
-    },
-    grid: {
-      left: '10%',
-      right: '10%',
-      top: '15%',
-      bottom: '15%'
-    },
-    xAxis: {
-      type: 'category',
-      data: dates,
-      axisLabel: {
-        rotate: 45
-      }
-    },
-    yAxis: [
-      {
-        type: 'value',
-        name: '金额(亿元)',
-        position: 'left',
-        axisLabel: {
-          formatter: '{value}'
-        }
-      },
-      {
-        type: 'value',
-        name: '比率',
-        position: 'right',
-        axisLabel: {
-          formatter: '{value}'
-        }
-      }
-    ],
-    series: [
-      {
-        name: '营业收入(亿元)',
-        type: 'line',
-        yAxisIndex: 0,
-        data: revenue,
-        smooth: true,
-        itemStyle: {
-          color: '#409EFF'
-        }
-      },
-      {
-        name: '净利润(亿元)',
-        type: 'line',
-        yAxisIndex: 0,
-        data: netProfit,
-        smooth: true,
-        itemStyle: {
-          color: '#67C23A'
-        }
-      },
-      {
-        name: '每股收益(元)',
-        type: 'line',
-        yAxisIndex: 1,
-        data: eps,
-        smooth: true,
-        itemStyle: {
-          color: '#E6A23C'
-        }
-      },
-      {
-        name: 'ROE(%)',
-        type: 'line',
-        yAxisIndex: 1,
-        data: roe,
-        smooth: true,
-        itemStyle: {
-          color: '#F56C6C'
-        }
-      }
-    ]
-  }
-  
-  // 设置图表选项并渲染
-  performanceChart.setOption(option)
-  
-  // 响应窗口大小变化
-  window.addEventListener('resize', () => {
-    performanceChart?.resize()
-  })
-}
 
 // 方法：搜索股票
 const searchStocks = async (query: string) => {
@@ -656,14 +373,12 @@ const handleStockChange = (value: string) => {
 
 // 方法：查询
 const handleSearch = () => {
-  currentPage.value = 1
   fetchHistoryData()
 }
 
 // 方法：重置查询
 const resetQuery = () => {
   queryForm.dateRange = []
-  currentPage.value = 1
 }
 
 // 方法：排序变化
@@ -672,48 +387,14 @@ const handleSortChange = ({ prop, order }: { prop: string; order: string | null 
   sortOrder.value = order === 'ascending' ? 'asc' : 'desc'
 }
 
-// 方法：页大小变化
-const handleSizeChange = (newSize: number) => {
-  pageSize.value = newSize
-  currentPage.value = 1
+// 方法：处理财报组件加载状态
+const handleFinancialLoading = (loading: boolean) => {
+  financialLoading.value = loading
 }
 
-// 方法：当前页变化
-const handleCurrentChange = (newPage: number) => {
-  currentPage.value = newPage
-}
-
-// 方法：获取价格颜色类
-const getPriceClass = (change: number) => {
-  if (change > 0) return 'price-up'
-  if (change < 0) return 'price-down'
-  return 'price-unchanged'
-}
-
-// 方法：格式化成交量
-const formatVolume = (volume: number | null | undefined): string => {
-  if (volume === null || volume === undefined) return '-'
-  
-  if (volume >= 100000000) {
-    return (volume / 100000000).toFixed(2) + '亿手'
-  } else if (volume >= 10000) {
-    return (volume / 10000).toFixed(2) + '万手'
-  } else {
-    return volume.toString() + '手'
-  }
-}
-
-// 方法：格式化成交额
-const formatAmount = (amount: number | null | undefined): string => {
-  if (amount === null || amount === undefined) return '-'
-  
-  if (amount >= 100000000) {
-    return (amount / 100000000).toFixed(2) + '亿'
-  } else if (amount >= 10000) {
-    return (amount / 10000).toFixed(2) + '万'
-  } else {
-    return amount.toString()
-  }
+// 方法：处理财报组件错误
+const handleFinancialError = (message: string) => {
+  ElMessage.error(message)
 }
 
 // 监听路由参数变化
@@ -742,27 +423,6 @@ onMounted(() => {
   if (queryForm.code) {
     fetchHistoryData()
   }
-})
-
-// 组件卸载前清理图表实例
-onBeforeUnmount(() => {
-  if (chart) {
-    chart.dispose()
-    chart = null
-  }
-  
-  if (performanceChart) {
-    performanceChart.dispose()
-    performanceChart = null
-  }
-  
-  window.removeEventListener('resize', () => {
-    chart?.resize()
-  })
-  
-  window.removeEventListener('resize', () => {
-    performanceChart?.resize()
-  })
 })
 </script>
 
@@ -819,8 +479,19 @@ onBeforeUnmount(() => {
   height: 400px;
 }
 
+.data-container {
+  margin-top: 20px;
+}
+
+.data-tabs {
+  margin-top: 20px;
+}
+
+.data-tabs .el-tabs__content {
+  padding: 20px 0;
+}
+
 .table-container {
-  margin-top: 30px;
   width: 100%;
   overflow-x: auto;
 }
