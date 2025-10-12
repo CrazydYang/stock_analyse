@@ -230,7 +230,7 @@ const menuItems = computed(() => {
         },
         {
           path: '/analysis/congestion',
-          title: '行业拥挤度',
+          title: '行业热力图',
           icon: 'TrendCharts'
         },
         {

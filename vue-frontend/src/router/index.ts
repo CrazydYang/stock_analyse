@@ -135,7 +135,7 @@ const router = createRouter({
           path: '/analysis/congestion',
           name: 'congestion-heatmap',
           component: () => import('@/views/analysis/CongestionHeatmap.vue'),
-          meta: { title: '行业拥挤度热力图' }
+          meta: { title: '行业热力图' }
         },
         {
           path: '/analysis/news-list',
