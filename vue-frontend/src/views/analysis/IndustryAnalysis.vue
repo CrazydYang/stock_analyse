@@ -1,326 +1,534 @@
 <template>
   <div class="industry-analysis">
+    <!-- 筛选控制面板 -->
+    <el-card class="filter-panel" shadow="hover">
+      <div class="filter-row">
+        <!-- 行业选择 -->
+        <div class="filter-item">
+          <label class="filter-label">选择行业：</label>
+          <el-select
+            v-model="selectedIndustry"
+            placeholder="请选择行业"
+            style="width: 200px"
+            @change="handleIndustryChange"
+          >
+            <el-option
+              v-for="industry in industryList"
+              :key="industry.name"
+              :label="industry.name"
+              :value="industry.name"
+            />
+          </el-select>
+        </div>
 
-    <!-- 统计概览 -->
-    <div class="stats-section">
-      <el-row :gutter="20" class="stats-grid">
-        <el-col :xs="12" :sm="6" :md="6" :lg="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-number">{{ totalIndustries }}</div>
-            <div class="stat-label">行业总数</div>
-          </el-card>
-        </el-col>
-        <el-col :xs="12" :sm="6" :md="6" :lg="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-number">{{ totalStocks }}</div>
-            <div class="stat-label">股票总数</div>
-          </el-card>
-        </el-col>
-        <el-col :xs="12" :sm="6" :md="6" :lg="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-number">{{ avgStocksPerIndustry }}</div>
-            <div class="stat-label">平均行业股票数</div>
-          </el-card>
-        </el-col>
-        <el-col :xs="12" :sm="6" :md="6" :lg="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-number">{{ largestIndustry?.count || 0 }}</div>
-            <div class="stat-label">最大行业股票数</div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
+        <!-- 季度选择 -->
+        <div class="filter-item">
+          <label class="filter-label">选择季度：</label>
+          <el-select
+            v-model="selectedQuarter"
+            placeholder="请选择季度"
+            style="width: 150px"
+            @change="handleQuarterChange"
+          >
+            <el-option
+              v-for="quarter in quarterOptions"
+              :key="quarter.value"
+              :label="quarter.label"
+              :value="quarter.value"
+            />
+          </el-select>
+        </div>
 
+        <!-- 指标选择 -->
+        <div class="filter-item">
+          <label class="filter-label">选择指标：</label>
+          <el-select
+            v-model="selectedIndicator"
+            placeholder="请选择指标"
+            style="width: 180px"
+            @change="handleIndicatorChange"
+          >
+            <el-option
+              v-for="indicator in indicatorOptions"
+              :key="indicator.value"
+              :label="indicator.label"
+              :value="indicator.value"
+            />
+          </el-select>
+        </div>
 
-    <!-- 行业列表 -->
-    <div class="list-section">
-      <div class="list-header">
-        <h2>行业分类详情</h2>
-        <div class="list-actions">
-          <span class="result-count">
-            共找到 {{ industries.length }} 个行业
-          </span>
+        <!-- 查询按钮 -->
+        <div class="filter-item">
+          <el-button
+            type="primary"
+            :loading="loading"
+            @click="fetchAnalysisData"
+          >
+            查询分析
+          </el-button>
         </div>
       </div>
+    </el-card>
 
-      <div class="table-container">
-        <el-table 
-          :data="paginatedIndustries" 
-          style="width: 100%"
-          stripe
-          border
-          :loading="loading"
-          empty-text="暂无行业数据"
-        >
-          <el-table-column prop="industry" label="行业名称" width="120">
-            <template #default="scope">
-              <div class="industry-info">
-                <span class="industry-name">{{ scope.row.industry }}</span>
-              </div>
-            </template>
-          </el-table-column>
-        
-          
-          <el-table-column prop="change_amount" label="涨跌额" width="120" align="center" sortable>
-            <template #default="scope">
-              <span 
-                class="change-value" 
-                :class="{
-                  'positive': scope.row.change_amount > 0,
-                  'negative': scope.row.change_amount < 0,
-                  'neutral': scope.row.change_amount === 0
-                }"
-              >
-                {{ scope.row.change_amount ? scope.row.change_amount.toFixed(2) : '0.00' }}
-              </span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="change_percent" label="行业平均涨跌幅" width="150" align="center" sortable>
-            <template #default="scope">
-              <span 
-                class="change-value" 
-                :class="{
-                  'positive': scope.row.change_percent > 0,
-                  'negative': scope.row.change_percent < 0,
-                  'neutral': scope.row.change_percent === 0
-                }"
-              >
-                {{ formatChangePercent(scope.row.change_percent) }}
-              </span>
-            </template>
-          </el-table-column>
-          
-
-
-          
-
-          
-          <el-table-column prop="rise_fall_count" label="上涨/下跌家数" width="120" align="center">
-            <template #default="scope">
-              <div class="rise-fall-count">
-                <span class="rise-count">{{ scope.row.rise_count || 0 }}</span>
-                <span class="count-separator">/</span>
-                <span class="fall-count">{{ scope.row.fall_count || 0 }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="total_market_value" label="总市值(亿)" width="120" align="center">
-            <template #default="scope">
-              <span class="value-badge">{{ scope.row.total_market_value ? (scope.row.total_market_value / 100000000).toFixed(2) : 'N/A' }}</span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="turnover_rate" label="换手率" width="100" align="center">
-            <template #default="scope">
-              <span class="value-badge">{{ scope.row.turnover_rate ? scope.row.turnover_rate.toFixed(2) + '%' : 'N/A' }}</span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column prop="leading_stock" label="领涨股" width="120" align="center">
-            <template #default="scope">
-              <div v-if="scope.row.leading_stock">
-                <div>{{ scope.row.leading_stock }}</div>
-                <div 
-                  class="change-value" 
-                  :class="{
-                    'positive': scope.row.leading_stock_change_percent > 0,
-                    'negative': scope.row.leading_stock_change_percent < 0,
-                    'neutral': scope.row.leading_stock_change_percent === 0
-                  }"
-                >
-                  {{ formatChangePercent(scope.row.leading_stock_change_percent) }}
-                </div>
-              </div>
-              <span v-else>--</span>
-            </template>
-          </el-table-column>
-          
-          <el-table-column label="操作" width="120" align="center" fixed="right">
-            <template #default="scope">
-              <el-button 
-                type="primary" 
-                size="small"
-                @click="showIndustryDetail(scope.row)"
-              >
-                查看详情
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-
+    <!-- 图表展示区域 -->
+    <el-card class="chart-panel" shadow="hover" v-if="chartData.length > 0">
+      <div class="chart-header">
+        <h3>{{ chartTitle }}</h3>
+        <div class="chart-info">
+          <span class="info-item">行业: {{ selectedIndustryName }}</span>
+          <span class="info-item">季度: {{ selectedQuarterName }}</span>
+          <span class="info-item">指标: {{ selectedIndicatorName }}</span>
+        </div>
       </div>
-
-      <!-- 分页 -->
-      <div class="pagination-container" v-if="totalPages > 1">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="industries.length"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+      
+      <div class="chart-container">
+        <div ref="chartRef" class="chart" style="width: 100%; height: 500px;"></div>
       </div>
-    </div>
+    </el-card>
 
 
+
+    <!-- 空状态 -->
+    <el-empty
+      v-if="!loading && chartData.length === 0"
+      description="请选择筛选条件并点击查询分析按钮"
+      :image-size="200"
+    />
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">正在加载行业数据...</div>
+      <el-loading
+        element-loading-text="正在加载数据..."
+        element-loading-spinner="el-icon-loading"
+        element-loading-background="rgba(0, 0, 0, 0.8)"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { 
-  fetchIndustriesData, 
-  fetchIndustrySectorStocks, 
-  type Industry, 
-  type Stock 
-} from '../../services/industryApi'
+/**
+ * 行业分析页面组件
+ * 功能：
+ * 1. 提供行业选择、季度选择、指标选择的交互界面
+ * 2. 基于用户选择调用API获取数据
+ * 3. 使用ECharts展示指标趋势图
+ * 4. 提供详细数据表格展示
+ * 5. 支持数据导出功能
+ * 
+ * 参数：无
+ * 返回值：无
+ * 事件：无
+ */
+
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
+import { 
+  getIndustrySectors, 
+  getIndustryPerformanceReports,
+  type IndustrySector,
+  type IndustryPerformanceReport,
+  ReportType
+} from '../../services/industryAnalysisApi'
 
 // 响应式数据
-const industries = ref<Industry[]>([])
 const loading = ref(false)
-const loadingDetail = ref(false)
+const chartRef = ref<HTMLDivElement>()
+const chartInstance = ref<echarts.ECharts>()
 
-const currentPage = ref(1)
-const pageSize = ref(12)
+// 筛选条件
+const selectedIndustry = ref<string>()
+const selectedQuarter = ref<string>('')
+const selectedIndicator = ref<string>('revenue')
 
-// 路由
-const router = useRouter()
+// 基础数据
+const industryList = ref<IndustrySector[]>([])
+const chartData = ref<any[]>([])
+
+// 选项配置
+// - `annual`: 年报，筛选报告期以1231结尾的数据
+// - `semi_annual`: 中报，筛选报告期以0630结尾的数据  
+// - `q1`: 一季报，筛选报告期以0331结尾的数据
+// - `q3`: 三季报，筛选报告期以0930结尾的数据
+// - `quarterly`: 季报，包含一季报和三季报数据（向后兼容）
+const quarterOptions = ref([
+  { label: '年报', value: 'annual' },
+  { label: '中报', value: 'semi_annual' },
+  { label: '一季报', value: 'q1' },
+  { label: '三季报', value: 'q3' },
+  { label: '季报', value: 'quarterly' },
+])
+
+const indicatorOptions = ref([
+  { label: '营业收入', value: 'revenue' },
+  { label: '净利润', value: 'net_profit' },
+  { label: '营业收入同比增长率', value: 'revenue_growth' },
+  { label: '净利润同比增长率', value: 'profit_growth' },
+  { label: '毛利率', value: 'gross_margin' },
+  { label: '净利率', value: 'net_margin' },
+  { label: 'ROE', value: 'roe' },
+  { label: 'ROA', value: 'roa' },
+])
 
 // 计算属性
-const totalIndustries = computed(() => industries.value.length)
-const totalStocks = computed(() => 
-  industries.value.reduce((sum, industry) => sum + industry.count, 0)
-)
-const avgStocksPerIndustry = computed(() => 
-  totalIndustries.value > 0 ? Math.round(totalStocks.value / totalIndustries.value) : 0
-)
-const largestIndustry = computed(() => 
-  industries.value.reduce((max, industry) => 
-    industry.count > max.count ? industry : max, 
-    { industry: '', count: 0, stocks: [] }
-  )
-)
-
-const totalPages = computed(() => 
-  Math.ceil(industries.value.length / pageSize.value)
-)
-
-const paginatedIndustries = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return industries.value.slice(start, end)
+const selectedIndustryName = computed(() => {
+  if (selectedIndustry.value === 'all') return '全部行业'
+  const industry = industryList.value.find(item => item.name === selectedIndustry.value)
+  return industry?.name || '未知行业'
 })
 
-const visiblePages = computed(() => {
-  const pages: number[] = []
-  const start = Math.max(1, currentPage.value - 2)
-  const end = Math.min(totalPages.value, currentPage.value + 2)
-  
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-  
-  return pages
+const selectedQuarterName = computed(() => {
+  const quarter = quarterOptions.value.find(item => item.value === selectedQuarter.value)
+  return quarter?.label || '未选择'
+})
+
+const selectedIndicatorName = computed(() => {
+  const indicator = indicatorOptions.value.find(item => item.value === selectedIndicator.value)
+  return indicator?.label || '未选择'
+})
+
+const chartTitle = computed(() => {
+  return `${selectedIndustryName.value} - ${selectedIndicatorName.value}趋势分析`
 })
 
 // 方法
-const fetchIndustries = async () => {
+/**
+ * 初始化页面数据
+ */
+const initializeData = async () => {
   loading.value = true
-  
   try {
-    const industriesData = await fetchIndustriesData()
-    industries.value = industriesData
+    // 获取行业列表
+    const response = await getIndustrySectors()
+    console.log('获取行业列表响应:', response)
+    industryList.value = response.sectors
+    console.log('行业列表:', industryList.value)
+    
+    // 设置默认值
+    if (quarterOptions.value.length > 0) {
+      selectedQuarter.value = quarterOptions.value[0].value
+    }
+    
+    ElMessage.success('页面初始化完成')
   } catch (error) {
-    console.error('获取行业数据错误:', error)
-    ElMessage.error('获取行业数据失败，请稍后重试')
+    console.error('初始化数据失败:', error)
+    ElMessage.error('初始化数据失败，请刷新页面重试')
   } finally {
     loading.value = false
   }
 }
 
-const calculatePercentage = (count: number) => {
-  return totalStocks.value > 0 ? ((count / totalStocks.value) * 100).toFixed(1) : '0.0'
-}
+/**
+ * 获取分析数据
+ * 根据选择的行业、季度和指标获取相应的数据
+ */
+const fetchAnalysisData = async () => {
+  if (!selectedQuarter.value || !selectedIndicator.value) {
+    ElMessage.warning('请选择季度和指标')
+    return
+  }
 
-// 格式化涨跌幅
-const formatChangePercent = (percent: number | undefined) => {
-  if (percent === undefined || percent === null) return '0.00%'
-  const formattedValue = percent.toFixed(2)
-  return percent > 0 ? `+${formattedValue}%` : `${formattedValue}%`
-}
+  loading.value = true
+  
+  try {
+    const params: any = {
+      report_type: selectedQuarter.value
+    }
 
-// Element Plus 分页事件处理
-const handleSizeChange = (newSize: number) => {
-  pageSize.value = newSize
-  currentPage.value = 1
-}
+    // 如果选择了特定行业，添加行业参数
+    if (selectedIndustry.value !== 'all') {
+      params.industry = selectedIndustry.value
+    }
 
-const handleCurrentChange = (newPage: number) => {
-  currentPage.value = newPage
+    const response = await getIndustryPerformanceReports(params)
+    
+    // 处理数据
+    processChartData(response.aggregated_reports)
+    
+    // 渲染图表
+    await nextTick()
+    renderChart()
+    
+    ElMessage.success('数据加载完成')
+  } catch (error) {
+    console.error('获取分析数据失败:', error)
+    ElMessage.error('获取数据失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 /**
- * 查看行业详情
- * 先获取行业成分股数据，然后跳转到详情页
+ * 处理图表数据
+ * 根据选择的行业类型处理不同的图表数据格式
+ * @param reports IndustryPerformanceReport[] 行业业绩快报数据数组
  */
-const showIndustryDetail = async (industry: Industry) => {
-  if (!industry.code) {
-    ElMessage.warning('行业代码不存在，无法获取详情')
-    return
-  }
-  
-  loadingDetail.value = true
-  
-  try {
-    // 获取行业成分股数据
-    const { stocks, stats } = await fetchIndustrySectorStocks(industry.code)
-    
-    // 更新行业数据，添加成分股和统计数据
-    const updatedIndustry: Industry = {
-      ...industry,
-      stocks,
-      ...stats
-    }
-    
-    // 跳转到行业详情页面
-    router.push({
-      name: 'industry-detail',
-      params: {
-        industry: encodeURIComponent(updatedIndustry.industry)
-      },
-      state: { industryData: { ...updatedIndustry } } as { industryData: any } // 使用类型断言解决类型不匹配问题
-    })
-  } catch (error) {
-    console.error(`获取行业 ${industry.industry} 详情失败:`, error)
-    ElMessage.error('获取行业详情失败，请稍后重试')
-    
-    // 即使获取详情失败，也可以尝试跳转到详情页（详情页可能会再次请求数据）
-    router.push({
-      name: 'industry-detail',
-      params: {
-        industry: encodeURIComponent(industry.industry)
-      }
-    })
-  } finally {
-    loadingDetail.value = false
-  }
+const processChartData = async (reports: IndustryPerformanceReport[]) => {
+  // 单个行业：显示该行业的历史趋势
+  chartData.value = reports.map(report => ({
+    quarter: report.report_date,
+    value: getIndicatorValue(report, selectedIndicator.value),
+    growth_rate: getGrowthRate(report, selectedIndicator.value)
+  }))
 }
+
+/**
+ * 格式化季度名称
+ * @param quarter 季度代码
+ * @returns 格式化后的季度名称
+ */
+const formatQuarterName = (quarter: string): string => {
+  const quarterMap: { [key: string]: string } = {
+    'q1': 'Q1',
+    'semi_annual': '中报', 
+    'q3': 'Q3',
+    'annual': '年报'
+  }
+  return quarterMap[quarter] || quarter
+}
+
+/**
+ * 获取季度排序顺序
+ * @param quarter 季度名称
+ * @returns 排序数字
+ */
+const getQuarterOrder = (quarter: string): number => {
+  const orderMap: { [key: string]: number } = {
+    'Q1': 1,
+    '中报': 2,
+    'Q3': 3, 
+    '年报': 4
+  }
+  return orderMap[quarter] || 0
+}
+
+
+
+
+
+/**
+ * 获取指标值
+ * 根据选择的指标从IndustryPerformanceReport中获取对应的数值
+ * @param report IndustryPerformanceReport 行业业绩快报数据
+ * @param indicator string 指标类型
+ * @returns number 指标值
+ */
+const getIndicatorValue = (report: IndustryPerformanceReport, indicator: string): number => {
+  const mapping: Record<string, keyof IndustryPerformanceReport> = {
+    'revenue': 'total_operating_revenue',
+    'net_profit': 'total_net_profit',
+    'revenue_growth': 'avg_operating_revenue_growth_rate',
+    'profit_growth': 'avg_net_profit_growth_rate',
+    'gross_margin': 'avg_gross_profit_margin',
+    'net_margin': 'avg_gross_profit_margin', // 使用毛利率作为净利率的替代
+    'roe': 'avg_roe',
+    'roa': 'avg_roe', // 使用ROE作为ROA的替代
+    'eps': 'avg_earnings_per_share', // 每股收益
+    'bvps': 'avg_net_assets_per_share', // 每股净资产
+    'ocfps': 'avg_operating_cash_flow_per_share' // 每股经营现金流
+  }
+  
+  const key = mapping[indicator]
+  return key ? (report[key] as number) || 0 : 0
+}
+
+/**
+ * 获取增长率
+ * 根据选择的指标获取对应的增长率数据
+ * @param report IndustryPerformanceReport 行业业绩快报数据
+ * @param indicator string 指标类型
+ * @returns number 增长率值
+ */
+const getGrowthRate = (report: IndustryPerformanceReport, indicator: string): number => {
+  const growthMapping: Record<string, keyof IndustryPerformanceReport> = {
+    'revenue': 'avg_operating_revenue_growth_rate',
+    'net_profit': 'avg_net_profit_growth_rate',
+    'revenue_growth': 'avg_operating_revenue_growth_rate',
+    'profit_growth': 'avg_net_profit_growth_rate'
+  }
+  
+  const key = growthMapping[indicator]
+  return key ? (report[key] as number) || 0 : 0
+}
+
+/**
+ * 渲染图表
+ * 根据选择的行业类型渲染不同类型的图表
+ */
+const renderChart = () => {
+  if (!chartRef.value || chartData.value.length === 0) return
+
+  // 销毁现有图表实例
+  if (chartInstance.value) {
+    chartInstance.value.dispose()
+  }
+
+  // 创建新的图表实例
+  chartInstance.value = echarts.init(chartRef.value)
+
+  let option: echarts.EChartsOption
+
+  if (selectedIndustry.value === 'all') {
+    // 检查数据格式，判断是趋势图还是柱状图
+    const hasMultipleDataPoints = chartData.value.length > 0 && chartData.value[0].data
+    
+    if (hasMultipleDataPoints) {
+      // 多行业趋势对比图
+      const quarters = [...new Set(
+        chartData.value.flatMap(item => item.data.map((d: any) => d.quarter))
+      )].sort((a, b) => getQuarterOrder(a) - getQuarterOrder(b))
+      
+      const colors = [
+        '#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1',
+        '#13c2c2', '#eb2f96', '#fa8c16', '#a0d911', '#2f54eb'
+      ]
+      
+      option = {
+        title: {
+          text: chartTitle.value,
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross'
+          }
+        },
+        legend: {
+          data: chartData.value.map(item => item.name),
+          top: '10%',
+          type: 'scroll'
+        },
+        grid: {
+          top: '20%',
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: quarters,
+          boundaryGap: false
+        },
+        yAxis: {
+          type: 'value',
+          name: selectedIndicatorName.value,
+          nameTextStyle: {
+            fontSize: 12
+          }
+        },
+        series: chartData.value.map((item, index) => ({
+          name: item.name,
+          type: 'line',
+          data: quarters.map(quarter => {
+            const dataPoint = item.data.find((d: any) => d.quarter === quarter)
+            return dataPoint ? dataPoint.value : null
+          }),
+          smooth: true,
+          connectNulls: false,
+          itemStyle: {
+            color: colors[index % colors.length]
+          },
+          lineStyle: {
+            color: colors[index % colors.length],
+            width: 2
+          },
+          symbol: 'circle',
+          symbolSize: 6
+        }))
+      }
+    } else {
+      // 柱状图显示所有行业对比（降级处理）
+      option = {
+        title: {
+          text: chartTitle.value,
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: chartData.value.map(item => item.name),
+          axisLabel: {
+            rotate: 45,
+            fontSize: 10
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: selectedIndicatorName.value
+        },
+        series: [{
+          name: selectedIndicatorName.value,
+          type: 'bar',
+          data: chartData.value.map(item => item.value),
+          itemStyle: {
+            color: '#1890ff'
+          }
+        }]
+      }
+    }
+  } else {
+    // 折线图显示单个行业趋势
+    option = {
+      title: {
+        text: chartTitle.value,
+        left: 'center'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      xAxis: {
+        type: 'category',
+        data: chartData.value.map(item => item.quarter)
+      },
+      yAxis: {
+        type: 'value',
+        name: selectedIndicatorName.value
+      },
+      series: [{
+        name: selectedIndicatorName.value,
+        type: 'line',
+        data: chartData.value.map(item => item.value),
+        smooth: true,
+        itemStyle: {
+          color: '#1890ff'
+        },
+        lineStyle: {
+          color: '#1890ff'
+        }
+      }]
+    }
+  }
+
+  chartInstance.value.setOption(option)
+}
+
+/**
+ * 事件处理
+ */
+const handleIndustryChange = () => {
+  chartData.value = []
+}
+
+const handleQuarterChange = () => {
+  chartData.value = []
+}
+
+const handleIndicatorChange = () => {
+  chartData.value = []
+}
+
 
 // 生命周期
 onMounted(() => {
-  fetchIndustries()
+  initializeData()
 })
 </script>
 
@@ -331,12 +539,12 @@ onMounted(() => {
   padding: 20px;
 }
 
-.header {
+.page-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 30px;
 }
 
-.header h1 {
+.page-header h1 {
   font-size: 32px;
   font-weight: 700;
   color: #1a1a1a;
@@ -349,371 +557,68 @@ onMounted(() => {
   margin: 0;
 }
 
-/* 统计概览 */
-.stats-section {
-  margin-bottom: 32px;
+.filter-panel {
+  margin-bottom: 24px;
 }
 
-.stat-card {
-  text-align: center;
-  transition: all 0.3s ease;
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.stat-number {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1890ff;
-  margin-bottom: 8px;
+.filter-label {
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
 }
 
-.stat-label {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
+.chart-panel {
+  margin-bottom: 24px;
 }
 
-/* 行业列表 */
-.list-section {
-  margin-bottom: 32px;
-}
-
-.list-header {
+.chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.list-header h2 {
-  font-size: 24px;
+.chart-header h3 {
+  font-size: 20px;
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
 }
 
-.result-count {
+.chart-info {
+  display: flex;
+  gap: 16px;
+}
+
+.info-item {
   font-size: 14px;
   color: #666;
-}
-
-/* 表格样式 */
-.table-container {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f0f0f0;
-  transition: all 0.3s ease;
-}
-
-.table-container:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.industry-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.industry-table th,
-.industry-table td {
-  padding: 16px;
-  text-align: left;
-  border-bottom: 1px solid #f0f0f0;
-  transition: all 0.2s ease;
-}
-
-.industry-table th {
-  background: linear-gradient(180deg, #fafafa, #f5f5f5);
-  font-weight: 600;
-  color: #1a1a1a;
-  font-size: 14px;
-  border-bottom: 2px solid #e8e8e8;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.industry-table .table-row {
-  transition: all 0.2s ease;
-}
-
-.industry-table .table-row:hover {
-  background: #f8f9fa;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* 列宽设置 */
-.col-industry {
-  width: 15%;
-}
-
-.col-count {
-  width: 8%;
-  text-align: center;
-}
-
-.col-percentage {
-  width: 8%;
-}
-
-.col-change {
-  width: 10%;
-}
-
-.col-pe {
-  width: 8%;
-  text-align: center;
-}
-
-.col-pb {
-  width: 8%;
-  text-align: center;
-}
-
-.col-change-60 {
-  width: 10%;
-}
-
-.col-change-ytd {
-  width: 10%;
-}
-
-.col-actions {
-  width: 10%;
-  text-align: center;
-}
-
-/* 行业名称 */
-.industry-info {
-  display: flex;
-  align-items: center;
-}
-
-.industry-name {
-  font-weight: 600;
-  color: #1a1a1a;
-  font-size: 15px;
-}
-
-/* 数量徽章 */
-.count-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #e6f7ff;
-  color: #1890ff;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-/* 百分比值 */
-.percentage-value {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #e6f7ff;
-  color: #1890ff;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-/* 数值徽章 */
-.value-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #f9f0ff;
-  color: #722ed1;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-/* 涨跌幅值 */
-.change-value {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.change-value.negative {
-  background: #f0f9eb;
-  color: #67C23A;
-}
-
-.change-value.positive {
-  background: #fef0f0;
-  color: #F56C6C;
-}
-
-.change-value.neutral {
-  background: #f4f4f5;
-  color: #909399;
-}
-
-/* 股票标签 */
-.stock-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.stock-tag {
   background: #f5f5f5;
-  color: #666;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  border: 1px solid #e8e8e8;
+  padding: 4px 12px;
+  border-radius: 12px;
 }
 
-.more-stocks {
-  background: #fafafa;
-  color: #999;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  border: 1px dashed #ddd;
-}
-
-/* 行业名称样式 */
-.industry-name {
-  font-weight: 600;
-  color: #1a1a1a;
-  font-size: 15px;
-}
-
-/* Element Plus 响应式调整 */
-@media (max-width: 768px) {
-  .search-actions {
-    text-align: left;
-  }
-}
-
-/* Element Plus 表格样式 */
-.el-table {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.stock-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.stock-tag {
-  font-size: 11px;
-  padding: 2px 6px;
-  background: #f0f2f5;
-  border-radius: 4px;
-  color: #666;
+.chart-container {
+  width: 100%;
 }
 
 
 
-/* 空状态 */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #666;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.empty-desc {
-  font-size: 14px;
-  color: #999;
-}
-
-/* Element Plus 分页容器 */
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin: 32px 0;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .industry-analysis {
-    padding: 16px;
-  }
-  
-  .header h1 {
-    font-size: 28px;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  
-  .stat-card {
-    padding: 16px;
-  }
-  
-
-  
-  .industry-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .pagination {
-    gap: 8px;
-  }
-  
-  .btn-page {
-    padding: 6px 12px;
-    font-size: 13px;
-    min-width: 32px;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .stat-card {
-    padding: 12px;
-  }
-  
-  .stat-number {
-    font-size: 24px;
-  }
-}
-
-/* 加载状态 */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -721,144 +626,36 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   background: rgba(255, 255, 255, 0.9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   z-index: 1000;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f0f0f0;
-  border-top: 4px solid #1890ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-.loading-text {
-  color: #666;
-  font-size: 16px;
-}
-
-/* Element Plus 表格容器 */
-.table-container {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f0f0f0;
-}
-
-/* 行业名称 */
-.industry-info {
-  display: flex;
-  align-items: center;
-}
-
-.industry-name {
-  font-weight: 600;
-  color: #1a1a1a;
-  font-size: 15px;
-}
-
-/* Element Plus 表格内容样式 */
-.percentage-value {
-  font-weight: 600;
-  color: #1890ff;
-}
-
-.value-badge {
-  font-weight: 600;
-  color: #333;
-}
-
-/* 涨跌幅颜色 */
-.change-value {
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.change-value.positive {
-  color: #f56565;
-  background-color: #fed7d7;
-}
-
-.change-value.negative {
-  color: #38a169;
-  background-color: #c6f6d5;
-}
-
-.change-value.neutral {
-  color: #718096;
-  background-color: #edf2f7;
-}
-
-/* 上涨/下跌家数样式 */
-.rise-fall-count {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-}
-
-.rise-count {
-  color: #f56565;
-  font-weight: 600;
-}
-
-.fall-count {
-  color: #38a169;
-  font-weight: 600;
-}
-
-.count-separator {
-  color: #718096;
-}
-
-/* 股票标签 */
-.stock-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.stock-tag {
-  background: #f5f5f5;
-  color: #666;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  border: 1px solid #e8e8e8;
-}
-
-.more-stocks {
-  background: #fafafa;
-  color: #999;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  border: 1px dashed #ddd;
-}
-
-/* Element Plus 响应式调整 */
+/* 响应式设计 */
 @media (max-width: 768px) {
-  .pagination-container {
+  .industry-analysis {
     padding: 16px;
   }
-}
-
-@media (max-width: 480px) {
-  .pagination-container {
-    padding: 12px;
+  
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
   
-  .table-container {
-    margin: 0 -12px;
-    border-radius: 0;
+  .filter-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .chart-info {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 </style>
