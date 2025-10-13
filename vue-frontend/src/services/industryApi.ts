@@ -365,3 +365,65 @@ export async function fetchIndustryDetail(industryName: string): Promise<Industr
     throw error
   }
 }
+
+// 行业统计数据接口
+export interface IndustryStatistics {
+  industry: string
+  stock_count: number
+  total_market_cap_sum: number
+  circulating_market_cap_sum: number
+  avg_latest_price: number
+  avg_change_percent: number
+  avg_change_amount: number
+  total_volume: number
+  total_amount: number
+  avg_amplitude: number
+  avg_turnover_rate: number
+  avg_pe_ratio: number
+  avg_pb_ratio: number
+  avg_volume_ratio: number
+  avg_price_change_speed: number
+  avg_change_5min: number
+  avg_change_60d: number
+  avg_change_ytd: number
+  max_high: number
+  min_low: number
+  avg_open_price: number
+  avg_close_price: number
+  total_shares_sum: number
+  circulating_shares_sum: number
+  avg_listing_years: number
+}
+
+// 行业统计数据响应接口
+export interface IndustryStatisticsResponse {
+  code: number
+  message: string
+  timestamp: string
+  data: IndustryStatisticsData
+}
+
+export interface IndustryStatisticsData {
+  industries: IndustryStatistics[]
+  total_industries: number
+  timestamp: string
+}
+
+/**
+ * 获取行业统计数据
+ * @param industry 行业名称，可选参数，不传则返回所有行业
+ * @returns 行业统计数据
+ */
+export async function fetchIndustryStatistics(industry?: string): Promise<IndustryStatisticsData> {
+  try {
+    const params = industry ? { industry } : {}
+    const response = await axios.get<IndustryStatisticsData>(`${API_BASE_URL}/industry/statistics/`, {
+      params
+    })
+    
+    return response.data
+  } catch (error) {
+    console.error('Error fetching industry statistics:', error)
+    throw error
+  }
+}

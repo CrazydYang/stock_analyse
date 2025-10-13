@@ -234,6 +234,11 @@ const menuItems = computed(() => {
           icon: 'TrendCharts'
         },
         {
+          path: '/analysis/industry-treemap',
+          title: '行业矩形树图',
+          icon: 'DataAnalysis'
+        },
+        {
           path: '/strategy/index-rps',
           title: '指数RPS强度排名',
           icon: 'DataAnalysis'

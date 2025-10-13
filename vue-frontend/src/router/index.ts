@@ -148,6 +148,12 @@ const router = createRouter({
           name: 'news-detail',
           component: () => import('@/views/analysis/NewsDetail.vue'),
           meta: { title: '新闻详情' }
+        },
+        {
+          path: '/analysis/industry-treemap',
+          name: 'industry-treemap',
+          component: () => import('@/views/analysis/IndustryTreemapView.vue'),
+          meta: { title: '行业矩形树图分析' }
         }
       ]
     },

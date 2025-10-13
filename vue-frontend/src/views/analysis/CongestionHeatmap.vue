@@ -336,14 +336,14 @@ const showPerformanceHeatmap = () => {
     xAxis: [
       {
         type: 'category',
-        data: dates.map(date => date.substring(5)),
+        data: dates,
         splitArea: { show: true },
         axisLabel: { rotate: 45, fontSize: 10 }
       },
       {
         type: 'category',
         position: 'top',
-        data: dates.map(date => date.substring(5)),
+        data: dates,
         axisTick: { show: false },
         axisLine: { show: false },
         axisLabel: { rotate: 45, fontSize: 10, margin: 6 },
