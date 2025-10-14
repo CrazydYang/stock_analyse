@@ -267,11 +267,11 @@ const menuItems = computed(() => {
       }
     ]
   },
-  {
-        path: '/forum/posts',
-        title: '论坛讨论区',
-        icon: 'Document'
-      }
+  // {
+  //       path: '/forum/posts',
+  //       title: '论坛讨论区',
+  //       icon: 'Document'
+  //     }
   ];
   
   // 只有管理员用户才能看到系统设置菜单
