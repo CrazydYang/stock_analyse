@@ -7,7 +7,7 @@
           <div class="controls">
             <!-- 热力图类型选择 -->
             <el-radio-group v-model="heatmapType" @change="updateChart" size="small">
-              <el-radio-button label="turnover">换手率分位数</el-radio-button>
+              <el-radio-button label="turnover">成交金额占比分位数</el-radio-button>
               <el-radio-button label="performance">行业业绩指标</el-radio-button>
             </el-radio-group>
             
@@ -105,7 +105,7 @@ const chartContainer = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 const sortMetric = ref('amount')
 const selectedDateRange = ref('20')
-const sortAscending = ref(false)
+const sortAscending = ref(true) // 确保初始值为false，从大到小排序
 const searchKeyword = ref('')
 const loading = ref(false)
 
