@@ -9,6 +9,7 @@
             <el-radio-group v-model="heatmapType" @change="updateChart" size="small">
               <el-radio-button label="turnover">成交金额占比分位数</el-radio-button>
               <el-radio-button label="performance">行业业绩指标</el-radio-button>
+              <el-radio-button label="fundflow">行业资金流</el-radio-button>
             </el-radio-group>
             
             <!-- 业绩指标选择（仅在业绩指标模式下显示） -->
@@ -42,9 +43,25 @@
               <el-option label="季报" value="quarterly" />
             </el-select>
             
-            <!-- 日期范围选择（仅在换手率模式下显示） -->
+            <!-- 资金流指标选择（仅在资金流模式下显示） -->
             <el-select 
-              v-if="heatmapType === 'turnover'" 
+              v-if="heatmapType === 'fundflow'" 
+              v-model="selectedFundFlowMetric" 
+              @change="updateChart" 
+              placeholder="选择资金流指标" 
+              style="width: 180px; margin-left: 10px;"
+            >
+              <el-option 
+                v-for="(config, key) in FUND_FLOW_METRICS" 
+                :key="key" 
+                :label="config.name" 
+                :value="key" 
+              />
+            </el-select>
+            
+            <!-- 日期范围选择（仅在换手率和资金流模式下显示） -->
+            <el-select 
+              v-if="heatmapType === 'turnover' || heatmapType === 'fundflow'" 
               v-model="selectedDateRange" 
               @change="updateChart" 
               placeholder="选择日期范围" 
@@ -87,6 +104,8 @@ import { fetchIndustryTurnoverPercentile } from '@/services/industry-turnover-pe
 import type { IndustryTurnoverPercentileItem } from '@/services/industry-turnover-percentile'
 import { fetchIndustryHeatmapData, HeatmapMetricType, HEATMAP_METRICS } from '@/services/industry-heatmap'
 import type { IndustryHeatmapData, IndustryHeatmapDataItem, HeatmapMetricConfig } from '@/services/industry-heatmap'
+import { fetchIndustryFundFlowData, FundFlowMetricType, FUND_FLOW_METRICS } from '@/services/industry-fund-flow'
+import type { IndustryFundFlowData, IndustryFundFlowDataItem, FundFlowMetricConfig } from '@/services/industry-fund-flow'
 
 // 数据结构定义
 // 使用从stockApi导入的IndustryTurnoverPercentileItem接口
@@ -110,8 +129,9 @@ const searchKeyword = ref('')
 const loading = ref(false)
 
 // 新增的响应式变量
-const heatmapType = ref('turnover') // 热力图类型：turnover(换手率) 或 performance(业绩指标)
+const heatmapType = ref('turnover') // 热力图类型：turnover(换手率)、performance(业绩指标)、fundflow(资金流)
 const selectedMetric = ref(HeatmapMetricType.OPERATING_REVENUE_GROWTH) // 选择的业绩指标
+const selectedFundFlowMetric = ref(FundFlowMetricType.MAIN_NET_INFLOW_AMOUNT) // 选择的资金流指标
 const reportType = ref('annual') // 报告类型
 
 // 数据存储
@@ -121,14 +141,19 @@ const allDates = ref<string[]>([])
 // 新增：行业业绩数据存储
 const industryHeatmapData = ref<IndustryHeatmapData | null>(null)
 
+// 新增：行业资金流数据存储
+const industryFundFlowData = ref<IndustryFundFlowData | null>(null)
+
 // 从API获取数据
 const fetchData = async () => {
   loading.value = true
   try {
     if (heatmapType.value === 'turnover') {
       await fetchTurnoverData()
-    } else {
+    } else if (heatmapType.value === 'performance') {
       await fetchPerformanceData()
+    } else if (heatmapType.value === 'fundflow') {
+      await fetchFundFlowData()
     }
   } catch (error) {
     console.error('获取数据出错:', error)
@@ -220,6 +245,27 @@ const fetchPerformanceData = async () => {
   }
 }
 
+// 获取行业资金流数据
+const fetchFundFlowData = async () => {
+  // 计算日期范围
+  const today = new Date()
+  const endDate = today.toISOString().split('T')[0]
+  
+  // 根据选择的日期范围计算开始日期
+  const days = selectedDateRange.value === 'all' ? 30 : parseInt(selectedDateRange.value)
+  const startDate = new Date(today)
+  startDate.setDate(today.getDate() - days)
+  const formattedStartDate = startDate.toISOString().split('T')[0]
+  
+  const response = await fetchIndustryFundFlowData(formattedStartDate, endDate)
+  
+  if (response) {
+    industryFundFlowData.value = response
+  } else {
+    ElMessage.error('获取行业资金流数据失败')
+  }
+}
+
 // 根据选择的日期范围过滤数据
 const getFilteredData = () => {
   let industries = allIndustries.value
@@ -258,9 +304,12 @@ const updateChart = () => {
     } else {
       showHeatmap(industries, dates)
     }
-  } else {
+  } else if (heatmapType.value === 'performance') {
     // 业绩指标热力图
     showPerformanceHeatmap()
+  } else if (heatmapType.value === 'fundflow') {
+    // 资金流热力图
+    showFundFlowHeatmap()
   }
 }
 
@@ -282,8 +331,9 @@ const showPerformanceHeatmap = () => {
   
   // 按最后一列数据排序
   const sortedIndustries = [...filteredIndustries].sort((a, b) => {
-    const aData = data.congestions[a.indexCode]
-    const bData = data.congestions[b.indexCode]
+    // 兼容后端返回的congestions键：优先使用indexCode，其次尝试indexName
+    const aData = data.congestions[a.indexCode] || data.congestions[a.indexName as any]
+    const bData = data.congestions[b.indexCode] || data.congestions[b.indexName as any]
     
     if (!aData || !bData || aData.length === 0 || bData.length === 0) return 0
     
@@ -299,16 +349,26 @@ const showPerformanceHeatmap = () => {
   let maxValue = -Infinity
   
   sortedIndustries.forEach((industry, industryIndex) => {
-    const industryData = data.congestions[industry.indexCode]
+    // 兼容后端返回的congestions键：优先使用indexCode，其次尝试indexName
+    const industryData = data.congestions[industry.indexCode] || data.congestions[industry.indexName as any]
     if (industryData) {
-      industryData.forEach((item, dateIndex) => {
+      industryData.forEach((item: IndustryHeatmapDataItem, dateIndex: number) => {
         const value = item[selectedMetric.value as keyof IndustryHeatmapDataItem] as number
-        heatmapData.push([dateIndex, industryIndex, value])
-        minValue = Math.min(minValue, value)
-        maxValue = Math.max(maxValue, value)
+        // 检查value是否为有效数字
+        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+          heatmapData.push([dateIndex, industryIndex, value])
+          minValue = Math.min(minValue, value)
+          maxValue = Math.max(maxValue, value)
+        }
       })
     }
   })
+  
+  // 如果没有有效数据，设置默认值
+  if (minValue === Infinity || maxValue === -Infinity) {
+    minValue = 0
+    maxValue = 100
+  }
   
   // 获取指标配置
   const metricConfig = HEATMAP_METRICS[selectedMetric.value as HeatmapMetricType]
@@ -407,14 +467,201 @@ const showPerformanceHeatmap = () => {
     }]
   }
   
-  chart.setOption(option)
+  // 使用nextTick确保在Vue更新周期之外执行ECharts操作
+  nextTick(() => {
+    if (!chart) return
+    
+    chart.setOption(option)
+    
+    // 动态调整容器高度
+    if (chartContainer.value) {
+      const containerHeight = Math.max(500, sortedIndustries.length * 22 + 120)
+      chartContainer.value.style.height = containerHeight + 'px'
+      
+      // 延迟执行resize，确保容器高度已更新
+      setTimeout(() => {
+        if (chart) {
+          chart.resize()
+        }
+      }, 0)
+    }
+  })
+}
+
+// 显示资金流热力图
+const showFundFlowHeatmap = () => {
+  console.log(industryFundFlowData.value)
+  if (!chart || !industryFundFlowData.value) return
   
-  // 动态调整容器高度
-  if (chartContainer.value) {
-    const containerHeight = Math.max(500, sortedIndustries.length * 22 + 120)
-    chartContainer.value.style.height = containerHeight + 'px'
-    chart.resize()
+  const data = industryFundFlowData.value
+  const dates = data.dates
+  const industries = data.swCodeNames
+  
+  // 过滤行业（如果有搜索关键词）
+  let filteredIndustries = industries
+  if (searchKeyword.value.trim()) {
+    filteredIndustries = industries.filter(industry => 
+      industry.indexName.toLowerCase().includes(searchKeyword.value.toLowerCase())
+    )
   }
+  
+  // 按最后一列数据排序
+  const sortedIndustries = [...filteredIndustries].sort((a, b) => {
+    // 兼容后端返回的congestions键：优先使用indexCode，其次尝试indexName
+    const aData = data.congestions[a.indexCode] || data.congestions[a.indexName as any]
+    const bData = data.congestions[b.indexCode] || data.congestions[b.indexName as any]
+    
+    if (!aData || !bData || aData.length === 0 || bData.length === 0) return 0
+    
+    const aLastValue = aData[aData.length - 1][selectedFundFlowMetric.value as keyof IndustryFundFlowDataItem] as number
+    const bLastValue = bData[bData.length - 1][selectedFundFlowMetric.value as keyof IndustryFundFlowDataItem] as number
+    
+    return sortAscending.value ? aLastValue - bLastValue : bLastValue - aLastValue
+  })
+  
+  // 构建热力图数据
+  const heatmapData: [number, number, number][] = []
+  let minValue = Infinity
+  let maxValue = -Infinity
+  
+  sortedIndustries.forEach((industry, industryIndex) => {
+    // 兼容后端返回的congestions键：优先使用indexCode，其次尝试indexName
+    const industryData = data.congestions[industry.indexCode] || data.congestions[industry.indexName as any]
+    if (industryData) {
+      industryData.forEach((item: IndustryFundFlowDataItem, dateIndex: number) => {
+        const value = item[selectedFundFlowMetric.value as keyof IndustryFundFlowDataItem] as number
+        // 检查value是否为有效数字
+        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+          heatmapData.push([dateIndex, industryIndex, value])
+          minValue = Math.min(minValue, value)
+          maxValue = Math.max(maxValue, value)
+        }
+      })
+    }
+  })
+  
+  // 如果没有有效数据，设置默认值，避免visualMap异常
+  if (minValue === Infinity || maxValue === -Infinity) {
+    minValue = 0
+    maxValue = 100
+  }
+  
+  // 获取指标配置
+  const metricConfig = FUND_FLOW_METRICS[selectedFundFlowMetric.value]
+  
+  chart.clear()
+  const option: echarts.EChartsOption = {
+    tooltip: {
+      position: 'top',
+      formatter: function (params: any) {
+        const [dateIndex, industryIndex, value] = params.data
+        const date = dates[dateIndex]
+        const industry = sortedIndustries[industryIndex].indexName
+        const formattedValue = metricConfig.formatter ? metricConfig.formatter(value) : value.toFixed(2)
+        return `${industry}<br/>${date}<br/>${metricConfig.name}: ${formattedValue}${metricConfig.unit}`
+      }
+    },
+    grid: {
+      height: Math.max(400, sortedIndustries.length * 20) + 'px',
+      top: '2%',
+      left: '15%',
+      right: '16%',
+      bottom: '2%',
+      containLabel: true
+    },
+    xAxis: [
+      {
+        type: 'category',
+        data: dates,
+        splitArea: { show: true },
+        axisLabel: { rotate: 45, fontSize: 10 }
+      },
+      {
+        type: 'category',
+        position: 'top',
+        data: dates,
+        axisTick: { show: false },
+        axisLine: { show: false },
+        axisLabel: { rotate: 45, fontSize: 10, margin: 6 },
+        name: '日期',
+        nameLocation: 'end',
+        nameTextStyle: { fontSize: 12 }
+      }
+    ],
+    yAxis: [
+      {
+        type: 'category',
+        data: sortedIndustries.map(industry => industry.indexName),
+        splitArea: { show: true },
+        axisLabel: { fontSize: 11 }
+      },
+      {
+        type: 'category',
+        position: 'right',
+        data: sortedIndustries.map(industry => industry.indexName),
+        axisTick: { show: false },
+        axisLine: { show: false },
+        axisLabel: { fontSize: 11 },
+        name: '行业',
+        nameLocation: 'end',
+        nameTextStyle: { fontSize: 12 }
+      }
+    ],
+    visualMap: {
+      min: minValue,
+      max: maxValue,
+      calculable: true,
+      orient: 'vertical',
+      right: '2%',
+      top: '5%',
+      inRange: {
+        color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+      },
+      text: ['高', '低'],
+      textStyle: {
+        fontSize: 12
+      }
+    },
+    series: [{
+      name: metricConfig.name,
+      type: 'heatmap',
+      data: heatmapData,
+      label: {
+        show: true,
+        fontSize: 9,
+        formatter: function (params: any) {
+          const value = params.data[2]
+          return metricConfig.formatter ? metricConfig.formatter(value) : value.toFixed(1)
+        }
+      },
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }
+    }]
+  }
+  
+  // 使用nextTick确保在Vue更新周期之外执行ECharts操作
+  nextTick(() => {
+    if (!chart) return
+    
+    chart.setOption(option)
+    
+    // 动态调整容器高度
+    if (chartContainer.value) {
+      const containerHeight = Math.max(500, sortedIndustries.length * 22 + 120)
+      chartContainer.value.style.height = containerHeight + 'px'
+      
+      // 延迟执行resize，确保容器高度已更新
+      setTimeout(() => {
+        if (chart) {
+          chart.resize()
+        }
+      }, 0)
+    }
+  })
 }
 
 // 显示热力图
@@ -433,7 +680,10 @@ const showHeatmap = (industries: IndustryData[], dates: string[]) => {
   sortedIndustries.forEach((industry, industryIndex) => {
     industry.data.forEach((item: any, dateIndex: number) => {
       const value = sortMetric.value === 'turnover' ? item.turnoverRateFQuantile : item.amountCongestionQuantile
-      heatmapData.push([dateIndex, industryIndex, value])
+      // 检查value是否为有效数字
+      if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+        heatmapData.push([dateIndex, industryIndex, value])
+      }
     })
   })
   
@@ -622,13 +872,24 @@ const showTrendChart = (industries: IndustryData[], dates: string[]) => {
     series: series
   }
   
-  chart.setOption(option, true)
-  
-  // 调整容器高度为固定值
-  if (chartContainer.value) {
-    chartContainer.value.style.height = '500px'
-    chart.resize()
-  }
+  // 使用nextTick确保在Vue更新周期之外执行ECharts操作
+  nextTick(() => {
+    if (!chart) return
+    
+    chart.setOption(option, true)
+    
+    // 调整容器高度为固定值
+    if (chartContainer.value) {
+      chartContainer.value.style.height = '500px'
+      
+      // 延迟执行resize，确保容器高度已更新
+      setTimeout(() => {
+        if (chart) {
+          chart.resize()
+        }
+      }, 0)
+    }
+  })
 }
 
 const sortByLastColumn = () => {
@@ -657,9 +918,9 @@ watch([heatmapType, selectedMetric, reportType], async () => {
   }
 })
 
-// 监听日期范围变化，重新获取数据（仅在换手率模式下）
+// 监听日期范围变化，重新获取数据（换手率和资金流模式）
 watch(selectedDateRange, async () => {
-  if (heatmapType.value === 'turnover') {
+  if (heatmapType.value === 'turnover' || heatmapType.value === 'fundflow') {
     await fetchData()
     if (chart) {
       updateChart()
